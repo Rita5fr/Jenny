@@ -1,0 +1,19 @@
+WARNING:mem0:OPENAI_API_KEY is not set; falling back to deterministic embeddings.
+INFO:     Started server process [19259]
+INFO:     Waiting for application startup.
+INFO:mem0:Initializing Postgres connection pool.
+INFO:mem0:Mem0 service initialized.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8081 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58179 - "GET /health HTTP/1.1" 200 OK
+ERROR:mem0:Failed to store memory.
+Traceback (most recent call last):
+  File "/Users/icl/jenny ai/jenny/app/mem0/server/main.py", line 218, in create_memory
+    cur.execute(
+psycopg2.ProgrammingError: can't adapt type 'UUID'
+INFO:     127.0.0.1:58194 - "POST /memories HTTP/1.1" 500 Internal Server Error
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:mem0:Mem0 service shutdown complete.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [19259]
