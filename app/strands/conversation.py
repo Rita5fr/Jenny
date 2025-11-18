@@ -1,4 +1,4 @@
-"""Conversation interface bridging transport channels with the orchestrator."""
+"""Conversation interface bridging transport channels with CrewAI orchestrator."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 from app.strands.agents.voice_agent import transcribe_audio
 from app.strands.context_store import SessionSnapshot, SessionStore
-from app.strands.orchestrator import Orchestrator
+from app.crew.crew import JennyCrew
 
 
 @dataclass
@@ -23,8 +23,8 @@ class IncomingMessage:
 class ConversationInterface:
     """High-level interface for handling multi-modal user input."""
 
-    def __init__(self, orchestrator: Orchestrator, session_store: SessionStore) -> None:
-        self._orchestrator = orchestrator
+    def __init__(self, crew: JennyCrew, session_store: SessionStore) -> None:
+        self._crew = crew
         self._sessions = session_store
 
     async def handle_message(self, message: IncomingMessage) -> Dict[str, Any]:
@@ -59,7 +59,7 @@ class ConversationInterface:
         await self._sessions.append_history(
             payload["user_id"], {"role": "user", "content": text}
         )
-        response = await self._orchestrator.invoke(text, payload)
+        response = await self._crew.process_query(text, payload["user_id"], payload)
         await self._sessions.update_intent(payload["user_id"], response.get("agent", ""))
         return response
 
@@ -82,7 +82,7 @@ class ConversationInterface:
                 "metadata": {"voice_url": voice_url},
             },
         )
-        response = await self._orchestrator.invoke(transcript, payload)
+        response = await self._crew.process_query(transcript, payload["user_id"], payload)
         await self._sessions.update_intent(payload["user_id"], response.get("agent", ""))
         return response
 

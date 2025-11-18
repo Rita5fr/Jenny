@@ -12,10 +12,16 @@ requests>=2.31.0
 # ============================================
 # AI & Agent Framework
 # ============================================
-# Strands SDK - Agent orchestration framework
-strands-agents>=0.1.0
+# CrewAI - Multi-agent orchestration framework
+crewai>=0.90.0
+crewai-tools>=0.15.0
 
-# Strands Tools - 70+ pre-built tools (file ops, web search, code execution)
+# LangChain - For tool integration with CrewAI
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langchain-community>=0.3.0
+
+# Strands Tools - 70+ pre-built tools (can wrap for CrewAI)
 strands-agents-tools>=0.1.0
 
 # Official Mem0 - AI memory layer

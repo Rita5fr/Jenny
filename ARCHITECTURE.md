@@ -1,27 +1,24 @@
-# Jenny AI Assistant - New Architecture Design
+# Jenny AI Assistant - Architecture Design
 
 ## Executive Summary
 
-This document outlines the migration from the current custom implementation to a Strands SDK-based architecture with official Mem0 integration, designed to support advanced business automation features.
+Jenny has been migrated from a custom keyword-based routing system to **CrewAI**, a production-ready multi-agent orchestration framework. This provides intelligent LLM-based routing, specialized agents with distinct roles, and seamless integration with Mem0 for persistent memory.
 
-## Current Architecture (Before Migration)
+## Previous Architecture (Deprecated)
 
-### Components
-- **Orchestrator**: Custom intent router using keyword matching
-- **Agents**: Simple async functions (memory_agent, task_agent, calendar_agent, etc.)
-- **Memory**: Custom Mem0 microservice with PostgreSQL + pgvector
-- **Tools**: Recently added strands-agents-tools integration (limited)
-- **Databases**: PostgreSQL (pgvector), Redis, Neo4j (all local via Docker)
+### Old Components (Replaced)
+- **Orchestrator**: Custom keyword-based intent router ❌ REMOVED
+- **Agents**: Simple async functions without structure ❌ REPLACED
+- **Routing**: Manual keyword matching (brittle) ❌ REPLACED
 
-### Limitations
-1. No structured agent framework - agents are just functions
-2. Custom Mem0 implementation instead of official library
-3. Limited tool integration
-4. No support for complex workflows
-5. Basic intent detection (keyword-based)
-6. Missing business automation features
+### Why We Migrated
+1. ❌ Keyword routing failed for natural language ("Set up dentist" didn't trigger calendar)
+2. ❌ No LLM-based intent understanding
+3. ❌ Difficult to maintain keyword lists
+4. ❌ Poor user experience with rigid patterns
+5. ❌ "Handled by general agent" fallback was not helpful
 
-## New Architecture (Strands SDK + Official Mem0)
+## Current Architecture (CrewAI + Mem0)
 
 ### Core Framework Stack
 
@@ -34,30 +31,26 @@ This document outlines the migration from the current custom implementation to a
 │  ├─ REST API                                                │
 │  └─ Dashboard (Premium)                                     │
 ├─────────────────────────────────────────────────────────────┤
-│  Orchestration Layer                                        │
-│  ├─ StrandsOrchestrator (replaces custom Orchestrator)     │
-│  ├─ Intent Router (enhanced with Mem0 context)             │
-│  └─ Session Manager                                         │
+│  Orchestration Layer (CrewAI)                               │
+│  ├─ JennyCrew (multi-agent orchestrator)                   │
+│  ├─ Intelligent LLM-based routing                          │
+│  ├─ Task creation and delegation                           │
+│  └─ Session Manager (conversation context)                 │
 ├─────────────────────────────────────────────────────────────┤
-│  Agents Layer (Strands Agent Pattern)                      │
-│  ├─ MemoryAgent (conversation tracking)                    │
-│  ├─ TaskAgent (reminders, todos, lists)                    │
-│  ├─ CalendarAgent (Google, Outlook, Apple sync)            │
-│  ├─ SchedulerAgent (timed reminders, recurring tasks)      │
-│  ├─ MultimediaAgent (voice, image processing)              │
-│  ├─ KnowledgeAgent (Q&A, research)                         │
-│  ├─ ToolsAgent (50+ Strands tools)                         │
-│  └─ DashboardAgent (analytics, insights)                   │
+│  Agents Layer (CrewAI Agents)                              │
+│  ├─ Memory Keeper (Mem0 integration, user context)         │
+│  ├─ Task Coordinator (reminders, todos, lists)             │
+│  ├─ Calendar Coordinator (Google, Outlook, Apple)          │
+│  ├─ Profile Manager (preferences, habits, settings)        │
+│  └─ General Assistant (conversations, delegation)          │
 ├─────────────────────────────────────────────────────────────┤
-│  Tools Layer (Strands Tools Library)                       │
-│  ├─ File Operations (read, write, edit)                    │
-│  ├─ Web Search & Scraping                                  │
-│  ├─ HTTP Requests                                           │
-│  ├─ Python REPL                                             │
-│  ├─ Mem0 Memory (official integration)                     │
-│  ├─ Calendar APIs (Google, Microsoft, CalDAV)              │
-│  ├─ Image Analysis (OpenAI Vision)                         │
-│  └─ Voice Transcription (Whisper)                          │
+│  Tools Layer (CrewAI Tools + Custom)                       │
+│  ├─ Memory Tools (search, add, get context)                │
+│  ├─ Task Tools (create, list, complete, delete)            │
+│  ├─ Calendar Tools (list events, create, search)           │
+│  ├─ Strands Tools (file ops, web search, code exec)        │
+│  ├─ Voice Transcription (Whisper)                          │
+│  └─ Image Analysis (GPT-4 Vision) [Pending]                │
 ├─────────────────────────────────────────────────────────────┤
 │  Memory Layer (Mem0 Open Source - Local)                  │
 │  ├─ Short-term Memory (conversation context)               │
@@ -89,10 +82,14 @@ This document outlines the migration from the current custom implementation to a
 
 ### Core Framework
 ```python
-# AI Framework
-strands-agents>=0.1.0          # Strands SDK for agent orchestration
-strands-agents-tools>=0.1.0    # 70+ pre-built tools
-mem0ai>=0.1.0                  # Mem0 open source (configured for local PostgreSQL + Neo4j)
+# AI Framework - CrewAI for multi-agent orchestration
+crewai>=0.90.0                 # CrewAI framework (intelligent routing)
+crewai-tools>=0.15.0           # CrewAI built-in tools
+langchain>=0.3.0               # LangChain for tool integration
+langchain-openai>=0.2.0        # OpenAI LLM integration
+langchain-community>=0.3.0     # Community tools
+strands-agents-tools>=0.1.0    # 70+ Strands tools (wrapped for CrewAI)
+mem0ai>=0.1.0                  # Mem0 open source (local PostgreSQL + Neo4j)
 
 # Web Framework
 fastapi>=0.104.0
