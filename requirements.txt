@@ -1,20 +1,90 @@
-fastapi
-uvicorn[standard]
-pydantic
-pydantic-settings
-python-dotenv
-httpx
-requests
-psycopg2-binary
-redis
-neo4j
-pgvector
-numpy
-openai
-tenacity
-sentry-sdk
-python-telegram-bot
+# ============================================
+# Core Framework
+# ============================================
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+httpx>=0.25.0
+requests>=2.31.0
 
-# Strands Agents Tools - Advanced agent capabilities
-# Provides 50+ pre-built tools for file operations, web search, code execution, etc.
-strands-agents-tools
+# ============================================
+# AI & Agent Framework
+# ============================================
+# Strands SDK - Agent orchestration framework
+strands-agents>=0.1.0
+
+# Strands Tools - 70+ pre-built tools (file ops, web search, code execution)
+strands-agents-tools>=0.1.0
+
+# Official Mem0 - AI memory layer
+mem0ai>=0.1.0
+
+# LLM Providers
+openai>=1.3.0
+anthropic>=0.7.0                # Optional: For Claude models
+
+# ============================================
+# Databases & Caching
+# ============================================
+psycopg2-binary>=2.9.9
+redis>=5.0.1
+neo4j>=5.14.0
+pgvector>=0.2.3
+numpy>=1.24.0
+
+# ============================================
+# Scheduling & Task Queue
+# ============================================
+apscheduler>=3.10.4             # Scheduled reminders and recurring tasks
+celery[redis]>=5.3.4            # Optional: Async task queue
+
+# ============================================
+# Calendar Integrations
+# ============================================
+# Google Calendar API
+google-api-python-client>=2.100.0
+google-auth-httplib2>=0.1.1
+google-auth-oauthlib>=1.1.0
+
+# Microsoft Outlook/Graph API
+msal>=1.24.0
+
+# Apple Calendar (CalDAV)
+caldav>=1.3.6
+
+# ============================================
+# Messaging & Communication
+# ============================================
+# Telegram Bot
+python-telegram-bot>=22.5
+
+# WhatsApp Business API (via Twilio)
+twilio>=8.10.0
+
+# ============================================
+# Multimedia Processing
+# ============================================
+# Voice transcription
+openai-whisper>=20231117
+
+# Image processing
+pillow>=10.1.0
+python-magic>=0.4.27            # File type detection
+
+# ============================================
+# Security & Authentication
+# ============================================
+cryptography>=41.0.5            # End-to-end encryption
+passlib[bcrypt]>=1.7.4          # Password hashing
+python-jose[cryptography]>=3.3.0  # JWT tokens
+python-multipart>=0.0.6         # Form data handling
+
+# ============================================
+# Utilities & Monitoring
+# ============================================
+tenacity>=8.2.3                 # Retry logic
+sentry-sdk[fastapi]>=1.38.0     # Error tracking
+python-dateutil>=2.8.2          # Date utilities
+pytz>=2023.3                    # Timezone support
