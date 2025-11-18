@@ -1,0 +1,20 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-dotenv
+httpx
+requests
+psycopg2-binary
+redis
+neo4j
+pgvector
+numpy
+openai
+tenacity
+sentry-sdk
+python-telegram-bot
+
+# Strands Agents Tools - Advanced agent capabilities
+# Provides 50+ pre-built tools for file operations, web search, code execution, etc.
+strands-agents-tools
