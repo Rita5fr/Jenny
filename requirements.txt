@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-dotenv
+httpx
+requests
+psycopg2-binary
+redis
+neo4j
+pgvector
+numpy
+openai
+tenacity
+sentry-sdk
+python-telegram-bot
