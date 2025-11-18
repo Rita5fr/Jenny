@@ -4,6 +4,27 @@ Jenny is a local-first AI orchestration platform designed as a personal assistan
 
 ## 🚀 Quick Start
 
+### Automated Installation (Recommended)
+
+**Linux/macOS:**
+```bash
+./setup.sh
+```
+
+**Windows/Cross-platform:**
+```bash
+python setup.py
+```
+
+**Then start services:**
+```bash
+python start.py
+```
+
+That's it! See [INSTALL.md](INSTALL.md) for detailed automated setup guide.
+
+### Manual Setup
+
 **New to Jenny?** Follow the [Complete Setup Guide (SETUP.md)](SETUP.md) for detailed step-by-step instructions.
 
 ### Quick Setup (5 minutes)
