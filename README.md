@@ -2,6 +2,47 @@
 
 Jenny is a local-first AI orchestration platform designed as a personal assistant with multi-agent architecture, semantic memory, and multi-modal support.
 
+## 🚀 Quick Start
+
+**New to Jenny?** Follow the [Complete Setup Guide (SETUP.md)](SETUP.md) for detailed step-by-step instructions.
+
+### Quick Setup (5 minutes)
+
+1. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Start local databases:**
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Configure Supabase:**
+   - Create free account at [supabase.com](https://supabase.com)
+   - Copy connection details to `.env`
+   - See [SETUP.md](SETUP.md) for detailed instructions
+
+4. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your Supabase credentials and OpenAI API key
+   ```
+
+5. **Start services:**
+   ```bash
+   # Terminal 1: Mem0 service
+   python -m uvicorn app.mem0.server.main:app --port 8081
+
+   # Terminal 2: Main app
+   python -m uvicorn app.main:app --port 8044
+   ```
+
+6. **Test:**
+   ```bash
+   curl http://localhost:8044/health
+   ```
+
 ## Features
 
 ### Core Capabilities
@@ -111,7 +152,7 @@ Jenny is a local-first AI orchestration platform designed as a personal assistan
          │                  │
     ┌────▼────────┬─────────▼────┬────────────┐
     │  Postgres   │    Redis     │   Neo4j    │
-    │  (Neon)     │  (Upstash)   │  (Aura)    │
+    │ (Supabase)  │   (Local)    │  (Local)   │
     └─────────────┴──────────────┴────────────┘
 ```
 
@@ -123,10 +164,25 @@ Jenny is a local-first AI orchestration platform designed as a personal assistan
 - **Pydantic** - Data validation
 - **Python 3.11+** - Runtime
 
-### Databases
-- **PostgreSQL + pgvector** - Semantic memory storage (Neon hosted)
-- **Redis** - Session cache and context (Upstash)
-- **Neo4j** - Graph database for interaction logging (Aura)
+### Databases & Infrastructure
+
+#### PostgreSQL + pgvector (Supabase Cloud)
+- Semantic memory storage with vector embeddings
+- Task management and profile storage
+- Free tier available with 500MB database
+- Automatic backups and scaling
+
+#### Redis (Local via Docker)
+- Session cache and context persistence
+- Conversation history storage
+- Runs locally for low latency
+- Easy setup with docker-compose
+
+#### Neo4j (Local via Docker)
+- Graph database for interaction logging
+- Tracks user queries and agent responses
+- Optional but recommended for analytics
+- Runs locally with web interface
 
 ### AI/LLM Integration
 - **OpenAI** - Embeddings (text-embedding-3-small)
@@ -138,78 +194,88 @@ Jenny is a local-first AI orchestration platform designed as a personal assistan
 
 ## Installation
 
+> **📖 For detailed step-by-step instructions, see [SETUP.md](SETUP.md)**
+
 ### Prerequisites
 - Python 3.11 or higher
-- External services (or local alternatives):
-  - PostgreSQL database
-  - Redis instance
-  - Neo4j database (optional)
+- Docker and Docker Compose (for local Redis and Neo4j)
+- Supabase account (free tier available)
+- OpenAI API key
 
-### Setup
+### Quick Setup
 
-1. **Clone the repository**
+1. **Clone and install dependencies**
+   ```bash
+   git clone <repository-url>
+   cd Jenny
+   pip install -r requirements.txt
+   ```
+
+2. **Start local databases (Redis & Neo4j)**
+   ```bash
+   docker-compose up -d
+   ```
+
+3. **Set up Supabase**
+   - Create account at [supabase.com](https://supabase.com)
+   - Create new project (takes 2-3 minutes)
+   - Get connection details from Settings → Database
+   - Enable pgvector extension (see [SETUP.md](SETUP.md))
+
+4. **Configure environment**
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit `.env` with your credentials:
+   ```bash
+   # Required
+   OPENAI_API_KEY=sk-proj-your-key
+
+   # Supabase Postgres
+   PGHOST=db.your-project.supabase.co
+   PGPASSWORD=your-password
+
+   # Local Redis (default)
+   REDIS_URL=redis://localhost:6379
+
+   # Local Neo4j (default)
+   NEO4J_URI=neo4j://localhost:7687
+   NEO4J_PASSWORD=jenny123
+   ```
+
+5. **Start services**
+   ```bash
+   # Terminal 1: Mem0 microservice
+   python -m uvicorn app.mem0.server.main:app --port 8081
+
+   # Terminal 2: Main application
+   python -m uvicorn app.main:app --port 8044
+   ```
+
+6. **Verify installation**
+   ```bash
+   curl http://localhost:8044/health
+   # Should return: {"ok":true}
+   ```
+
+### Docker Commands
+
 ```bash
-git clone <repository-url>
-cd Jenny
-```
+# Start databases
+docker-compose up -d
 
-2. **Install dependencies**
-```bash
-pip install -r requirements.txt
-```
+# Check status
+docker-compose ps
 
-3. **Configure environment variables**
-```bash
-cp .env.example .env
-# Edit .env with your credentials
-```
+# View logs
+docker-compose logs -f
 
-Required environment variables:
-```bash
-# Postgres (Neon or local)
-PGHOST=<postgres-host>
-PGPORT=5432
-PGDATABASE=mem0
-PGUSER=<username>
-PGPASSWORD=<password>
-PGSSLMODE=require  # for Neon
+# Stop databases
+docker-compose down
 
-# Redis (Upstash or local)
-REDIS_URL=redis://<host>:<port>
-
-# Neo4j (optional)
-NEO4J_URL=neo4j://<host>:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=<password>
-
-# Mem0 service
-MEMO_BASE_URL=http://127.0.0.1:8081
-
-# API Keys
-OPENAI_API_KEY=<your-key>
-GEMINI_API_KEY=<your-key>  # optional
-DEEPSEEK_API_KEY=<your-key>  # optional
-
-# Telegram (optional)
-TELEGRAM_BOT_TOKEN=<your-token>
-
-# Monitoring (optional)
-SENTRY_DSN=<your-dsn>
-```
-
-4. **Start the Mem0 microservice**
-```bash
-python -m uvicorn app.mem0.server.main:app --host 0.0.0.0 --port 8081
-```
-
-5. **Start the main application**
-```bash
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8044
-```
-
-6. **Start the Telegram bot** (optional)
-```bash
-python app/bots/telegram_bot.py
+# Access Neo4j browser
+open http://localhost:7474
 ```
 
 ## API Endpoints
