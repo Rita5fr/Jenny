@@ -1,53 +1,96 @@
-"""Memory agent that talks to the Mem0 microservice."""
+"""Memory agent using official Mem0 integration."""
 from __future__ import annotations
 
 import logging
-import os
 import re
 from typing import Any, Dict, List
 
-import httpx
+from app.services.memory import (
+    add_memory as add_mem0_memory,
+    search_memory as search_mem0_memory,
+)
 
 logger = logging.getLogger(__name__)
 
-MEMO_BASE_URL = os.getenv("MEMO_BASE_URL", "http://127.0.0.1:8081")
 PREFERENCE_TRIGGERS = ("my favorite", "i like", "i love", "i prefer")
 
 
 async def add_memory(text: str, user_id: str) -> Dict[str, Any]:
-    """Persist text as a memory via the Mem0 API."""
+    """
+    Persist text as a memory via the official Mem0 service.
 
-    payload = {"messages": [{"role": "user", "content": text}], "user_id": user_id}
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        response = await client.post(f"{MEMO_BASE_URL}/memories", json=payload)
-        response.raise_for_status()
-        return response.json()
+    Args:
+        text: The text content to store
+        user_id: User identifier
+
+    Returns:
+        Dictionary with operation results
+    """
+    messages = [{"role": "user", "content": text}]
+    result = await add_mem0_memory(user_id=user_id, messages=messages)
+
+    if result.get("success"):
+        return result.get("result", {})
+    else:
+        logger.error(f"Failed to add memory: {result.get('error')}")
+        return {"error": result.get("error")}
 
 
 async def search_memory(query: str, user_id: str, k: int = 5) -> Dict[str, Any]:
-    """Search stored memories for the given user."""
+    """
+    Search stored memories for the given user.
 
-    params = {"q": query, "user_id": user_id, "k": k}
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        response = await client.get(f"{MEMO_BASE_URL}/memories/search", params=params)
-        response.raise_for_status()
-        return response.json()
+    Args:
+        query: Search query string
+        user_id: User identifier
+        k: Number of results to return
+
+    Returns:
+        Dictionary with search results
+    """
+    result = await search_mem0_memory(user_id=user_id, query=query, limit=k)
+
+    if result.get("success"):
+        return {"results": result.get("results", [])}
+    else:
+        logger.error(f"Failed to search memory: {result.get('error')}")
+        return {"results": []}
 
 
 async def forget_memory(topic: str, user_id: str) -> Dict[str, Any]:
-    """Record that a previous preference is outdated."""
+    """
+    Record that a previous preference is outdated.
 
+    Args:
+        topic: Topic to mark as outdated
+        user_id: User identifier
+
+    Returns:
+        Dictionary with operation results
+    """
     note = f"Update: {topic.strip()} is no longer valid."
     return await add_memory(note, user_id)
 
 
 async def get_user_context(user_id: str, limit: int = 5) -> List[Dict[str, Any]]:
-    """Return a small window of the user's context from Mem0."""
+    """
+    Return a small window of the user's context from Mem0.
 
+    Args:
+        user_id: User identifier
+        limit: Maximum number of context items to return
+
+    Returns:
+        List of user context/memory items
+    """
     try:
-        # Use a broad query to fetch the latest entries.
-        response = await search_memory("*", user_id, k=limit)
-        return response.get("results", []) or response.get("data", [])
+        # Use the new memory service to get recent context
+        from app.services.memory import get_all_memories
+
+        result = await get_all_memories(user_id=user_id, limit=limit)
+        if result.get("success"):
+            return result.get("memories", [])
+        return []
     except Exception as exc:
         logger.warning("Failed to retrieve user context for %s: %s", user_id, exc)
         return []
