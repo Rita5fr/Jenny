@@ -1,6 +1,26 @@
 version: '3.8'
 
 services:
+  # PostgreSQL with pgvector extension (replacing Supabase cloud)
+  postgres:
+    image: ankane/pgvector:latest
+    container_name: jenny-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=jenny
+      - POSTGRES_PASSWORD=jenny123
+      - POSTGRES_DB=jenny_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jenny"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Redis for session management and caching
   redis:
     image: redis:7-alpine
@@ -25,7 +45,7 @@ services:
       - "7474:7474"  # HTTP
       - "7687:7687"  # Bolt
     environment:
-      - NEO4J_AUTH=neo4j/jenny123  # username/password
+      - NEO4J_AUTH=neo4j/jenny123
       - NEO4J_PLUGINS=["apoc"]
       - NEO4J_dbms_security_procedures_unrestricted=apoc.*
       - NEO4J_dbms_memory_heap_initial__size=512m
@@ -41,6 +61,8 @@ services:
       retries: 5
 
 volumes:
+  postgres-data:
+    driver: local
   redis-data:
     driver: local
   neo4j-data:

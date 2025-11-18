@@ -21,6 +21,7 @@ from app.strands.agents.profile_agent import profile_agent
 from app.strands.agents.recall_agent import recall_agent
 from app.strands.agents.research_agent import research_agent
 from app.strands.agents.task_agent import task_agent
+from app.strands.agents.tools_agent import tools_agent
 from app.strands.context_store import SessionStore
 
 AgentCallable = Callable[[str, Dict[str, Any]], Awaitable[Any]]
@@ -38,6 +39,7 @@ class Orchestrator:
         "calendar_agent": {"calendar", "meet"},
         "mail_agent": {"email", "inbox"},
         "research_agent": {"search", "research"},
+        "tools_agent": {"use tool", "execute", "run tool", "what tools", "list tools", "file read", "web search"},
     }
 
     def __init__(self, session_store: Optional[SessionStore] = None) -> None:
@@ -51,6 +53,7 @@ class Orchestrator:
         self.register_agent("profile_agent", profile_agent)
         self.register_agent("recall_agent", recall_agent)
         self.register_agent("knowledge_agent", knowledge_agent)
+        self.register_agent("tools_agent", tools_agent)
         self.register_agent("general_agent", self._general_agent)
 
     def register_agent(self, name: str, func: AgentCallable) -> None:

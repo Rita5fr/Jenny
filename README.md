@@ -13,23 +13,19 @@ Jenny is a local-first AI orchestration platform designed as a personal assistan
    pip install -r requirements.txt
    ```
 
-2. **Start local databases:**
+2. **Start ALL databases locally:**
    ```bash
    docker-compose up -d
    ```
+   This starts PostgreSQL, Redis, and Neo4j - **no cloud services needed!**
 
-3. **Configure Supabase:**
-   - Create free account at [supabase.com](https://supabase.com)
-   - Copy connection details to `.env`
-   - See [SETUP.md](SETUP.md) for detailed instructions
-
-4. **Configure environment:**
+3. **Configure environment:**
    ```bash
    cp .env.example .env
-   # Edit .env with your Supabase credentials and OpenAI API key
+   # Edit .env with your OpenAI API key (defaults work for local databases!)
    ```
 
-5. **Start services:**
+4. **Start services:**
    ```bash
    # Terminal 1: Mem0 service
    python -m uvicorn app.mem0.server.main:app --port 8081
@@ -38,7 +34,7 @@ Jenny is a local-first AI orchestration platform designed as a personal assistan
    python -m uvicorn app.main:app --port 8044
    ```
 
-6. **Test:**
+5. **Test:**
    ```bash
    curl http://localhost:8044/health
    ```
@@ -104,6 +100,16 @@ Jenny is a local-first AI orchestration platform designed as a personal assistan
   - Photo messages
 - Uses same orchestrator as HTTP API
 
+#### 10. **Advanced Tools Agent** ✓ NEW!
+- Integrated with strands-agents-tools library (50+ tools)
+- Capabilities include:
+  - Web search and content extraction
+  - File operations (read, write, edit)
+  - HTTP requests to APIs
+  - Python code execution (REPL)
+  - And more!
+- Ask: "list tools" to see all available tools
+
 ### Planned Features (Stubs)
 
 - **Calendar Agent** - Meeting and event management
@@ -152,8 +158,11 @@ Jenny is a local-first AI orchestration platform designed as a personal assistan
          │                  │
     ┌────▼────────┬─────────▼────┬────────────┐
     │  Postgres   │    Redis     │   Neo4j    │
-    │ (Supabase)  │   (Local)    │  (Local)   │
+    │  (Local)    │   (Local)    │  (Local)   │
+    │  +pgvector  │              │            │
     └─────────────┴──────────────┴────────────┘
+
+    🎉 All services run locally via docker-compose!
 ```
 
 ## Technology Stack
@@ -166,31 +175,35 @@ Jenny is a local-first AI orchestration platform designed as a personal assistan
 
 ### Databases & Infrastructure
 
-#### PostgreSQL + pgvector (Supabase Cloud)
+**🎉 100% Local Setup - No Cloud Services Required!**
+
+#### PostgreSQL + pgvector (Local via Docker)
 - Semantic memory storage with vector embeddings
 - Task management and profile storage
-- Free tier available with 500MB database
-- Automatic backups and scaling
+- Runs completely locally for privacy and control
+- Uses ankane/pgvector Docker image
+- Automatic database initialization with extensions
 
 #### Redis (Local via Docker)
 - Session cache and context persistence
 - Conversation history storage
-- Runs locally for low latency
-- Easy setup with docker-compose
+- Zero latency - runs on localhost
+- Persistent data with append-only file
 
 #### Neo4j (Local via Docker)
 - Graph database for interaction logging
 - Tracks user queries and agent responses
-- Optional but recommended for analytics
-- Runs locally with web interface
+- Includes web interface at http://localhost:7474
+- APOC plugin included for advanced queries
 
 ### AI/LLM Integration
 - **OpenAI** - Embeddings (text-embedding-3-small)
-- **Gemini** - Audio transcription and knowledge queries
-- **DeepSeek** - Reasoning for recall agent
+- **Gemini** - Audio transcription and knowledge queries (optional)
+- **DeepSeek** - Reasoning for recall agent (optional)
 
-### Bot Framework
-- **python-telegram-bot 22.5** - Telegram integration
+### Agent Tools & Frameworks
+- **strands-agents-tools** - 50+ pre-built tools for file ops, web search, code execution
+- **python-telegram-bot 22.5** - Telegram bot integration
 
 ## Installation
 
@@ -198,9 +211,10 @@ Jenny is a local-first AI orchestration platform designed as a personal assistan
 
 ### Prerequisites
 - Python 3.11 or higher
-- Docker and Docker Compose (for local Redis and Neo4j)
-- Supabase account (free tier available)
+- Docker and Docker Compose
 - OpenAI API key
+
+**That's it! No cloud accounts needed** - everything runs locally.
 
 ### Quick Setup
 
@@ -211,40 +225,31 @@ Jenny is a local-first AI orchestration platform designed as a personal assistan
    pip install -r requirements.txt
    ```
 
-2. **Start local databases (Redis & Neo4j)**
+2. **Start ALL databases locally**
    ```bash
    docker-compose up -d
    ```
+   This starts PostgreSQL (with pgvector), Redis, and Neo4j.
 
-3. **Set up Supabase**
-   - Create account at [supabase.com](https://supabase.com)
-   - Create new project (takes 2-3 minutes)
-   - Get connection details from Settings → Database
-   - Enable pgvector extension (see [SETUP.md](SETUP.md))
-
-4. **Configure environment**
+3. **Configure environment**
    ```bash
    cp .env.example .env
    ```
 
-   Edit `.env` with your credentials:
+   Edit `.env` and add your OpenAI key:
    ```bash
-   # Required
-   OPENAI_API_KEY=sk-proj-your-key
+   # Required - get from https://platform.openai.com/api-keys
+   OPENAI_API_KEY=sk-proj-your-key-here
 
-   # Supabase Postgres
-   PGHOST=db.your-project.supabase.co
-   PGPASSWORD=your-password
-
-   # Local Redis (default)
-   REDIS_URL=redis://localhost:6379
-
-   # Local Neo4j (default)
-   NEO4J_URI=neo4j://localhost:7687
-   NEO4J_PASSWORD=jenny123
+   # Database defaults (no changes needed!)
+   # PGHOST=localhost
+   # PGUSER=jenny
+   # PGPASSWORD=jenny123
+   # REDIS_URL=redis://localhost:6379
+   # NEO4J_PASSWORD=jenny123
    ```
 
-5. **Start services**
+4. **Start services**
    ```bash
    # Terminal 1: Mem0 microservice
    python -m uvicorn app.mem0.server.main:app --port 8081
@@ -253,7 +258,7 @@ Jenny is a local-first AI orchestration platform designed as a personal assistan
    python -m uvicorn app.main:app --port 8044
    ```
 
-6. **Verify installation**
+5. **Verify installation**
    ```bash
    curl http://localhost:8044/health
    # Should return: {"ok":true}

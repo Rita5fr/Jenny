@@ -1,165 +1,115 @@
-# Jenny Setup Guide
+# Jenny Complete Setup Guide
 
-This guide will help you set up Jenny with:
-- **Postgres**: Supabase (cloud)
-- **Redis**: Local (via Docker)
-- **Neo4j**: Local (via Docker)
+**🎉 100% Local Setup - No Cloud Services Required!**
+
+This guide will help you set up Jenny with all services running locally on your machine using Docker.
 
 ## Prerequisites
 
-- Python 3.11 or higher
-- Docker and Docker Compose
-- Supabase account (free tier available)
-- OpenAI API key
+- **Python 3.11 or higher**
+- **Docker and Docker Compose** ([Install Docker](https://docs.docker.com/get-docker/))
+- **OpenAI API key** ([Get API key](https://platform.openai.com/api-keys))
 
-## Step 1: Install Dependencies
+That's it! Everything else runs locally.
+
+## Step-by-Step Setup
+
+### Step 1: Install Python Dependencies
 
 ```bash
 # Clone the repository (if not already done)
 cd Jenny
 
-# Install Python dependencies
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-## Step 2: Set Up Supabase (Postgres)
+This installs:
+- FastAPI, Uvicorn (web framework)
+- PostgreSQL, Redis, Neo4j drivers
+- OpenAI client
+- **strands-agents-tools** (50+ agent tools)
+- Telegram bot framework
+- And more...
 
-### 2.1 Create Supabase Project
+### Step 2: Start Local Databases
 
-1. Go to [https://app.supabase.com/](https://app.supabase.com/)
-2. Sign up or log in
-3. Click **"New Project"**
-4. Fill in:
-   - **Name**: Jenny (or any name)
-   - **Database Password**: Choose a strong password (save this!)
-   - **Region**: Choose closest to you
-   - **Pricing Plan**: Free tier is sufficient
-5. Click **"Create new project"** and wait 2-3 minutes
-
-### 2.2 Get Connection Details
-
-1. In your Supabase project, go to **Settings** → **Database**
-2. Scroll to **Connection string** section
-3. Select **"URI"** mode
-4. You'll see something like:
-   ```
-   postgresql://postgres:[YOUR-PASSWORD]@db.abc123xyz.supabase.co:5432/postgres
-   ```
-
-5. Extract the values:
-   - **PGHOST**: `db.abc123xyz.supabase.co` (the part after `@` and before `:5432`)
-   - **PGPORT**: `5432`
-   - **PGDATABASE**: `postgres`
-   - **PGUSER**: `postgres`
-   - **PGPASSWORD**: Your password from step 2.1
-
-### 2.3 Enable pgvector Extension
-
-For memory storage to work, enable the pgvector extension:
-
-1. In Supabase, go to **Database** → **Extensions**
-2. Search for **"vector"** or **"pgvector"**
-3. Enable the extension
-
-Alternatively, run this SQL in the **SQL Editor**:
-```sql
-CREATE EXTENSION IF NOT EXISTS vector;
-```
-
-## Step 3: Start Local Services (Redis & Neo4j)
-
-### Option A: Using Docker Compose (Recommended)
+Start PostgreSQL, Redis, and Neo4j with one command:
 
 ```bash
-# Start Redis and Neo4j in the background
 docker-compose up -d
+```
 
-# Verify services are running
+This starts:
+- **PostgreSQL 16** with pgvector extension on port `5432`
+- **Redis 7** on port `6379`
+- **Neo4j 5 Community** on ports `7474` (HTTP) and `7687` (Bolt)
+
+#### Verify Services Are Running
+
+```bash
 docker-compose ps
-
-# You should see:
-# - jenny-redis   (port 6379)
-# - jenny-neo4j   (ports 7474, 7687)
 ```
 
-**Access Neo4j Browser**: Open [http://localhost:7474](http://localhost:7474)
-- Username: `neo4j`
-- Password: `jenny123`
+You should see:
+```
+NAME            IMAGE                     STATUS
+jenny-postgres  ankane/pgvector:latest    Up (healthy)
+jenny-redis     redis:7-alpine            Up (healthy)
+jenny-neo4j     neo4j:5-community         Up (healthy)
+```
 
-### Option B: Manual Installation
+#### View Logs
 
-#### Install Redis
-
-**On Ubuntu/Debian:**
 ```bash
-sudo apt update
-sudo apt install redis-server
-sudo systemctl start redis-server
-sudo systemctl enable redis-server
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs postgres
+docker-compose logs redis
+docker-compose logs neo4j
 ```
 
-**On macOS:**
-```bash
-brew install redis
-brew services start redis
-```
-
-**On Windows:**
-Download from [https://redis.io/download](https://redis.io/download) or use WSL2.
-
-#### Install Neo4j
-
-**Neo4j Desktop (All platforms):**
-1. Download from [https://neo4j.com/download/](https://neo4j.com/download/)
-2. Install and create a new database
-3. Set password (e.g., `jenny123`)
-4. Start the database
-
-**Docker (Quick):**
-```bash
-docker run -d \
-  --name jenny-neo4j \
-  -p 7474:7474 -p 7687:7687 \
-  -e NEO4J_AUTH=neo4j/jenny123 \
-  neo4j:5-community
-```
-
-## Step 4: Configure Environment Variables
+### Step 3: Configure Environment
 
 1. **Copy the example environment file:**
    ```bash
    cp .env.example .env
    ```
 
-2. **Edit `.env` with your values:**
+2. **Edit `.env` with your OpenAI API key:**
    ```bash
    nano .env  # or use your preferred editor
    ```
 
-3. **Update these required fields:**
-
+3. **Update the OpenAI API key:**
    ```bash
-   # OpenAI API Key (required)
+   # Required - get from https://platform.openai.com/api-keys
    OPENAI_API_KEY=sk-proj-your-actual-key-here
+   ```
 
-   # Supabase Postgres (from Step 2.2)
-   PGHOST=db.abc123xyz.supabase.co
+4. **Database credentials (defaults work!):**
+   The following are already configured in `.env.example`:
+   ```bash
+   # PostgreSQL (local)
+   PGHOST=localhost
    PGPORT=5432
-   PGDATABASE=postgres
-   PGUSER=postgres
-   PGPASSWORD=your-supabase-password
-   PGSSLMODE=require
+   PGDATABASE=jenny_db
+   PGUSER=jenny
+   PGPASSWORD=jenny123
+   PGSSLMODE=disable
 
-   # Local Redis (default if using docker-compose)
+   # Redis (local)
    REDIS_URL=redis://localhost:6379
 
-   # Local Neo4j (default if using docker-compose)
+   # Neo4j (local)
    NEO4J_URI=neo4j://localhost:7687
    NEO4J_USER=neo4j
    NEO4J_PASSWORD=jenny123
    ```
 
-4. **Optional: Add API keys for enhanced features:**
+5. **Optional API keys** (for enhanced features):
    ```bash
    # For voice transcription and knowledge queries
    GEMINI_API_KEY=your-gemini-key
@@ -171,16 +121,15 @@ docker run -d \
    TELEGRAM_BOT_TOKEN=your-bot-token
    ```
 
-## Step 5: Start Jenny Services
+### Step 4: Start Jenny Services
 
-### 5.1 Start Mem0 Microservice
+#### Terminal 1: Mem0 Microservice
 
-Open a terminal and run:
 ```bash
 python -m uvicorn app.mem0.server.main:app --host 0.0.0.0 --port 8081
 ```
 
-Keep this terminal open. You should see:
+You should see:
 ```
 INFO:     Started server process
 INFO:     Waiting for application startup.
@@ -188,7 +137,7 @@ INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8081
 ```
 
-### 5.2 Start Main Jenny Application
+#### Terminal 2: Main Jenny Application
 
 Open a **new terminal** and run:
 ```bash
@@ -203,16 +152,16 @@ INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8044
 ```
 
-### 5.3 (Optional) Start Telegram Bot
+#### Terminal 3 (Optional): Telegram Bot
 
 Open a **third terminal** and run:
 ```bash
 python app/bots/telegram_bot.py
 ```
 
-## Step 6: Verify Installation
+### Step 5: Verify Installation
 
-### 6.1 Test Health Endpoint
+#### 5.1 Test Health Endpoint
 
 ```bash
 curl http://localhost:8044/health
@@ -223,7 +172,7 @@ Expected response:
 {"ok":true}
 ```
 
-### 6.2 Test Memory Storage
+#### 5.2 Test Memory Storage
 
 ```bash
 curl -X POST http://localhost:8044/ask \
@@ -231,16 +180,15 @@ curl -X POST http://localhost:8044/ask \
   -d '{"user_id":"test","text":"Remember that I love green tea"}'
 ```
 
-Expected response:
+Expected response includes:
 ```json
 {
   "agent": "memory_agent",
-  "response": {...},
   "reply": "Got it, I've saved that."
 }
 ```
 
-### 6.3 Test Task Creation
+#### 5.3 Test Task Creation
 
 ```bash
 curl -X POST http://localhost:8044/ask \
@@ -248,74 +196,219 @@ curl -X POST http://localhost:8044/ask \
   -d '{"user_id":"test","text":"Remind me to buy groceries tomorrow"}'
 ```
 
-### 6.4 Run Test Suite
+#### 5.4 Test Tools Agent (NEW!)
+
+```bash
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"test","text":"list tools"}'
+```
+
+This shows all available tools from strands-agents-tools library!
+
+#### 5.5 Run Test Suite
 
 ```bash
 pytest tests/ -v
 ```
 
-Expected: All 6 tests should pass.
+Expected: All 6 tests should pass ✅
 
-## Step 7: Verify Database Connections
+### Step 6: Access Database Interfaces
 
-### Check Supabase Tables
-
-1. Go to Supabase → **Table Editor**
-2. You should see tables created by Jenny:
-   - `jenny_tasks` - for task management
-   - Other tables created by Mem0 service
-
-### Check Redis
+#### PostgreSQL
 
 ```bash
-# If using docker-compose
+# Using psql
+docker exec -it jenny-postgres psql -U jenny -d jenny_db
+
+# Check tables
+\dt
+
+# Check pgvector extension
+\dx
+
+# Exit
+\q
+```
+
+#### Redis
+
+```bash
+# Access Redis CLI
 docker exec -it jenny-redis redis-cli
+
+# Test connection
 > ping
 PONG
+
+# See stored sessions
 > keys *
-(shows session keys if any)
+
+# Exit
 > exit
 ```
 
-### Check Neo4j
+#### Neo4j Browser
 
-1. Open [http://localhost:7474](http://localhost:7474)
-2. Login with `neo4j` / `jenny123`
-3. Run query:
+1. Open [http://localhost:7474](http://localhost:7474) in your browser
+2. Login with:
+   - **Username:** `neo4j`
+   - **Password:** `jenny123`
+3. Run a test query:
    ```cypher
    MATCH (n) RETURN n LIMIT 10
    ```
-4. You should see interaction nodes if you've used the app
+
+## Usage Examples
+
+### Memory Management
+
+```bash
+# Save preferences
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"john","text":"My favorite color is blue"}'
+
+# Recall preferences
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"john","text":"What do I like?"}'
+```
+
+### Task Management
+
+```bash
+# Create task
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"john","text":"Remind me to call mom tomorrow"}'
+
+# List tasks
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"john","text":"List my tasks"}'
+```
+
+### Using Advanced Tools
+
+```bash
+# List available tools
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"john","text":"what tools do you have?"}'
+
+# Web search (if strands-agents-tools is installed)
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"john","text":"web search for Python tutorials"}'
+```
+
+## Managing Services
+
+### Docker Commands
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+
+# Restart a service
+docker-compose restart postgres
+docker-compose restart redis
+docker-compose restart neo4j
+
+# View logs
+docker-compose logs -f
+
+# Check status
+docker-compose ps
+
+# Stop and remove data (WARNING: deletes all data!)
+docker-compose down -v
+```
+
+### Application Commands
+
+```bash
+# Start Mem0 service
+python -m uvicorn app.mem0.server.main:app --port 8081
+
+# Start main app
+python -m uvicorn app.main:app --port 8044
+
+# Start with auto-reload (development)
+python -m uvicorn app.main:app --port 8044 --reload
+
+# Start Telegram bot
+python app/bots/telegram_bot.py
+```
 
 ## Troubleshooting
 
 ### Issue: "Failed to initialize Postgres pool"
 
-**Solution:**
-- Verify Supabase connection details in `.env`
-- Check if your IP is whitelisted in Supabase (Settings → Database → Connection Pooling)
-- Ensure `PGSSLMODE=require` is set
-- Test connection:
-  ```bash
-  psql "postgresql://postgres:YOUR_PASSWORD@YOUR_HOST:5432/postgres?sslmode=require"
-  ```
+**Cause:** PostgreSQL not running or wrong credentials
+
+**Solutions:**
+1. Check if PostgreSQL is running:
+   ```bash
+   docker-compose ps postgres
+   ```
+
+2. View PostgreSQL logs:
+   ```bash
+   docker-compose logs postgres
+   ```
+
+3. Restart PostgreSQL:
+   ```bash
+   docker-compose restart postgres
+   ```
+
+4. Verify credentials in `.env` match `docker-compose.yml`:
+   - PGUSER=jenny
+   - PGPASSWORD=jenny123
+   - PGDATABASE=jenny_db
 
 ### Issue: "Redis connection refused"
 
-**Solution:**
-- If using Docker: `docker-compose ps` (check if redis is running)
-- If using Docker: `docker-compose logs redis` (check logs)
-- If manual install: `redis-cli ping` (should return PONG)
-- Check `REDIS_URL` in `.env` is `redis://localhost:6379`
+**Solutions:**
+1. Check if Redis is running:
+   ```bash
+   docker-compose ps redis
+   ```
+
+2. Test Redis connection:
+   ```bash
+   docker exec -it jenny-redis redis-cli ping
+   ```
+
+3. Restart Redis:
+   ```bash
+   docker-compose restart redis
+   ```
 
 ### Issue: "Neo4j connection failed"
 
-**Solution:**
-- If using Docker: `docker-compose logs neo4j`
-- Wait 30 seconds after starting (Neo4j takes time to initialize)
-- Verify credentials: `neo4j` / `jenny123`
-- Check [http://localhost:7474](http://localhost:7474) is accessible
-- Ensure `NEO4J_URI=neo4j://localhost:7687` (not `neo4j+s://`)
+**Solutions:**
+1. Wait 30 seconds after starting (Neo4j takes time to initialize)
+
+2. Check Neo4j logs:
+   ```bash
+   docker-compose logs neo4j
+   ```
+
+3. Verify Neo4j is accessible:
+   - Open http://localhost:7474
+   - Login with neo4j/jenny123
+
+4. Restart Neo4j:
+   ```bash
+   docker-compose restart neo4j
+   ```
 
 ### Issue: "Module not found" errors
 
@@ -326,97 +419,128 @@ pip install -r requirements.txt --upgrade
 
 ### Issue: "OpenAI API key not found"
 
+**Solutions:**
+1. Get API key from https://platform.openai.com/api-keys
+2. Add to `.env`:
+   ```bash
+   OPENAI_API_KEY=sk-proj-your-key
+   ```
+3. Restart the application
+
+### Issue: Port Already in Use
+
 **Solution:**
-- Get API key from [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-- Add to `.env`: `OPENAI_API_KEY=sk-proj-...`
-
-## Managing Services
-
-### Start services
 ```bash
-docker-compose up -d
+# Find process using port
+lsof -i :8044  # for main app
+lsof -i :8081  # for Mem0
+lsof -i :5432  # for PostgreSQL
+
+# Kill the process
+kill -9 <PID>
+
+# Or change port in command
+python -m uvicorn app.main:app --port 8045
 ```
 
-### Stop services
+## Default Ports
+
+| Service | Port | Access |
+|---------|------|--------|
+| Main App | 8044 | http://localhost:8044 |
+| Mem0 Service | 8081 | http://localhost:8081 |
+| PostgreSQL | 5432 | localhost:5432 |
+| Redis | 6379 | localhost:6379 |
+| Neo4j Browser | 7474 | http://localhost:7474 |
+| Neo4j Bolt | 7687 | bolt://localhost:7687 |
+
+## Default Credentials
+
+| Service | Username | Password |
+|---------|----------|----------|
+| PostgreSQL | jenny | jenny123 |
+| Redis | (none) | (none) |
+| Neo4j | neo4j | jenny123 |
+
+## Data Persistence
+
+All data is persisted in Docker volumes:
+- `postgres-data` - PostgreSQL database files
+- `redis-data` - Redis append-only file
+- `neo4j-data` - Neo4j graph database
+- `neo4j-logs` - Neo4j log files
+
+To backup:
 ```bash
 docker-compose down
+docker run --rm -v jenny_postgres-data:/data -v $(pwd):/backup alpine tar czf /backup/postgres-backup.tar.gz /data
 ```
 
-### Stop and remove data
-```bash
-docker-compose down -v  # WARNING: This deletes all data!
-```
+## Advanced Configuration
 
-### View logs
-```bash
-docker-compose logs redis
-docker-compose logs neo4j
-docker-compose logs -f  # Follow all logs
-```
+### Change Database Passwords
 
-### Restart a service
+1. Update `docker-compose.yml`:
+   ```yaml
+   environment:
+     - POSTGRES_PASSWORD=your-new-password
+     - NEO4J_AUTH=neo4j/your-new-password
+   ```
+
+2. Update `.env`:
+   ```bash
+   PGPASSWORD=your-new-password
+   NEO4J_PASSWORD=your-new-password
+   ```
+
+3. Restart:
+   ```bash
+   docker-compose down -v  # WARNING: Deletes data!
+   docker-compose up -d
+   ```
+
+### Enable Strands Tools Optional Features
+
+Install additional tools:
 ```bash
-docker-compose restart redis
-docker-compose restart neo4j
+pip install strands-agents-tools[mem0_memory,use_browser,rss,use_computer]
 ```
 
 ## Production Deployment
 
-For production, consider:
+For production:
 
-1. **Redis**: Use managed Redis (Upstash, Redis Cloud, AWS ElastiCache)
-2. **Neo4j**: Use Neo4j Aura (cloud) or self-hosted with backups
-3. **Supabase**: Already production-ready (consider paid tier for more resources)
-4. **Security**:
-   - Never commit `.env` file
-   - Use strong passwords
-   - Enable SSL/TLS for all connections
-   - Set up firewall rules
-5. **Monitoring**: Add Sentry DSN for error tracking
+1. **Change all default passwords**
+2. **Enable SSL/TLS** for database connections
+3. **Set up firewall rules** to restrict access
+4. **Configure backups** for all databases
+5. **Add monitoring** (Sentry, Prometheus, etc.)
+6. **Use environment secrets** instead of `.env` file
+7. **Consider managed services** for databases
 
-## Next Steps
+## Getting Help
 
-1. Read the main [README.md](README.md) for API documentation
-2. Explore the [API endpoints](#)
-3. Set up the Telegram bot (optional)
-4. Customize agents for your needs
-
-## Support
-
-If you encounter issues:
-1. Check the logs: `docker-compose logs`
-2. Verify `.env` configuration
-3. Ensure all services are running
-4. Open an issue on GitHub with error details
+- **Documentation:** See [README.md](README.md) for API docs
+- **Issues:** Report bugs on GitHub
+- **Logs:** Check `docker-compose logs` for errors
 
 ## Quick Reference
 
-### Default Ports
-- Main App: `8044`
-- Mem0 Service: `8081`
-- Redis: `6379`
-- Neo4j Browser: `7474`
-- Neo4j Bolt: `7687`
-
-### Default Credentials (Local)
-- Neo4j: `neo4j` / `jenny123`
-- Redis: No password (default)
-- Supabase: Your chosen password
-
-### Useful Commands
 ```bash
-# Start all services
+# Complete setup from scratch
+git clone <repo>
+cd Jenny
+pip install -r requirements.txt
 docker-compose up -d
-
-# Start Jenny
+cp .env.example .env
+# Edit .env with OpenAI key
+python -m uvicorn app.mem0.server.main:app --port 8081 &
 python -m uvicorn app.main:app --port 8044
+curl http://localhost:8044/health
 
-# Start Mem0
-python -m uvicorn app.mem0.server.main:app --port 8081
-
-# Run tests
-pytest tests/ -v
-
-# Stop all Docker services
+# Stop everything
 docker-compose down
+pkill -f uvicorn
 ```
+
+Congratulations! Your Jenny AI assistant is now running locally! 🎉
