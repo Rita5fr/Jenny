@@ -24,31 +24,23 @@ async def send_reminder_notification(
     metadata: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
-    Send a reminder notification to the user.
+    Send a reminder notification to the user via Telegram.
 
     This function is called by the scheduler when a reminder is due.
 
     Args:
-        user_id: User identifier
+        user_id: User identifier (Telegram user ID or chat ID)
         message: Reminder message
         reminder_id: Unique reminder ID
-        metadata: Optional metadata (notification channel, etc.)
+        metadata: Optional metadata
     """
     logger.info(f"Sending reminder {reminder_id} to user {user_id}: {message}")
 
     try:
-        # Determine notification channel
-        channel = metadata.get("channel", "telegram") if metadata else "telegram"
-
-        if channel == "telegram":
-            await _send_telegram_reminder(user_id, message)
-        elif channel == "whatsapp":
-            await _send_whatsapp_reminder(user_id, message)
-        else:
-            logger.warning(f"Unknown notification channel: {channel}")
+        await _send_telegram_reminder(user_id, message)
 
         # Log successful delivery
-        logger.info(f"Reminder {reminder_id} delivered successfully")
+        logger.info(f"Reminder {reminder_id} delivered successfully to Telegram")
 
     except Exception as exc:
         logger.exception(f"Failed to send reminder {reminder_id}: {exc}")
@@ -65,32 +57,19 @@ async def _send_telegram_reminder(user_id: str, message: str) -> None:
         logger.warning(f"Failed to send Telegram reminder: {exc}")
 
 
-async def _send_whatsapp_reminder(user_id: str, message: str) -> None:
-    """Send reminder via WhatsApp."""
-    try:
-        # Import WhatsApp client here to avoid circular imports
-        from app.integrations.whatsapp.client import send_message
-
-        await send_message(user_id=user_id, text=f"🔔 Reminder: {message}")
-    except Exception as exc:
-        logger.warning(f"Failed to send WhatsApp reminder: {exc}")
-
-
 async def schedule_reminder(
     user_id: str,
     message: str,
     run_at: datetime,
-    channel: str = "telegram",
     metadata: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
-    Schedule a one-time reminder.
+    Schedule a one-time reminder via Telegram.
 
     Args:
-        user_id: User identifier
+        user_id: User identifier (Telegram user ID or chat ID)
         message: Reminder message
         run_at: When to send the reminder
-        channel: Notification channel (telegram, whatsapp)
         metadata: Optional metadata
 
     Returns:
@@ -98,10 +77,9 @@ async def schedule_reminder(
 
     Example:
         job_id = await schedule_reminder(
-            user_id="user_123",
+            user_id="123456789",  # Telegram chat ID
             message="Take medication",
-            run_at=datetime.now() + timedelta(hours=1),
-            channel="telegram"
+            run_at=datetime.now() + timedelta(hours=1)
         )
     """
     scheduler = get_scheduler()
@@ -113,7 +91,6 @@ async def schedule_reminder(
 
     # Prepare metadata
     job_metadata = metadata or {}
-    job_metadata["channel"] = channel
     job_metadata["user_id"] = user_id
 
     try:
@@ -143,21 +120,19 @@ async def schedule_recurring_reminder(
     hour: Optional[int] = None,
     minute: Optional[int] = None,
     day_of_week: Optional[str] = None,
-    channel: str = "telegram",
     metadata: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
-    Schedule a recurring reminder.
+    Schedule a recurring reminder via Telegram.
 
     Args:
-        user_id: User identifier
+        user_id: User identifier (Telegram user ID or chat ID)
         message: Reminder message
         cron_expression: Cron expression (if provided, overrides other params)
         interval_minutes: Repeat every X minutes
         hour: Hour of day (0-23, for daily reminders)
         minute: Minute of hour (0-59)
         day_of_week: Day of week (mon, tue, wed, thu, fri, sat, sun)
-        channel: Notification channel
         metadata: Optional metadata
 
     Returns:
@@ -166,7 +141,7 @@ async def schedule_recurring_reminder(
     Examples:
         # Daily at 9 AM
         await schedule_recurring_reminder(
-            user_id="user_123",
+            user_id="123456789",  # Telegram chat ID
             message="Morning standup",
             hour=9,
             minute=0
@@ -174,7 +149,7 @@ async def schedule_recurring_reminder(
 
         # Every Monday at 10 AM
         await schedule_recurring_reminder(
-            user_id="user_123",
+            user_id="123456789",
             message="Weekly review",
             day_of_week="mon",
             hour=10,
@@ -183,7 +158,7 @@ async def schedule_recurring_reminder(
 
         # Every 30 minutes
         await schedule_recurring_reminder(
-            user_id="user_123",
+            user_id="123456789",
             message="Drink water",
             interval_minutes=30
         )
@@ -197,7 +172,6 @@ async def schedule_recurring_reminder(
 
     # Prepare metadata
     job_metadata = metadata or {}
-    job_metadata["channel"] = channel
     job_metadata["user_id"] = user_id
     job_metadata["recurring"] = True
 

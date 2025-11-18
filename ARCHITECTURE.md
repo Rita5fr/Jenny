@@ -30,8 +30,7 @@ This document outlines the migration from the current custom implementation to a
 │                     Jenny AI Assistant                      │
 ├─────────────────────────────────────────────────────────────┤
 │  User Interfaces                                            │
-│  ├─ Telegram Bot                                            │
-│  ├─ WhatsApp Business API                                   │
+│  ├─ Telegram Bot (primary interface)                       │
 │  ├─ REST API                                                │
 │  └─ Dashboard (Premium)                                     │
 ├─────────────────────────────────────────────────────────────┤
@@ -60,11 +59,12 @@ This document outlines the migration from the current custom implementation to a
 │  ├─ Image Analysis (OpenAI Vision)                         │
 │  └─ Voice Transcription (Whisper)                          │
 ├─────────────────────────────────────────────────────────────┤
-│  Memory Layer (Official Mem0)                              │
+│  Memory Layer (Mem0 Open Source - Local)                  │
 │  ├─ Short-term Memory (conversation context)               │
 │  ├─ Long-term Memory (user preferences, history)           │
 │  ├─ Entity Memory (facts, relationships)                   │
-│  └─ Graph Memory (Neo4j for complex relationships)         │
+│  ├─ Vector Store (local PostgreSQL + pgvector)             │
+│  └─ Graph Memory (local Neo4j for complex relationships)   │
 ├─────────────────────────────────────────────────────────────┤
 │  Scheduler Layer (APScheduler)                             │
 │  ├─ Cron Jobs (daily summaries, recurring tasks)           │
@@ -92,7 +92,7 @@ This document outlines the migration from the current custom implementation to a
 # AI Framework
 strands-agents>=0.1.0          # Strands SDK for agent orchestration
 strands-agents-tools>=0.1.0    # 70+ pre-built tools
-mem0ai>=0.1.0                  # Official Mem0 library
+mem0ai>=0.1.0                  # Mem0 open source (configured for local PostgreSQL + Neo4j)
 
 # Web Framework
 fastapi>=0.104.0
@@ -120,8 +120,7 @@ msal>=1.24.0                   # Microsoft Graph API
 caldav>=1.3.6                  # Apple Calendar (CalDAV)
 
 # Messaging
-python-telegram-bot>=22.5
-twilio>=8.10.0                 # WhatsApp Business API
+python-telegram-bot>=22.5      # Telegram Bot (all notifications and reminders)
 
 # Multimedia Processing
 openai-whisper>=20231117       # Voice transcription
@@ -189,29 +188,14 @@ Tasks:
 2. [ ] Create reminder scheduler service
 3. [ ] Implement recurring task support
 4. [ ] Add reminder notification system
-5. [ ] Integrate with Telegram/WhatsApp
+5. [ ] Enhance Telegram integration
 
 **New Files**:
 - `app/scheduler/scheduler.py`
 - `app/scheduler/reminder_service.py`
 - `app/scheduler/jobs.py`
 
-### Phase 4: WhatsApp Business Integration
-**Status**: Pending
-**Duration**: 1-2 hours
-
-Tasks:
-1. [ ] Set up Twilio WhatsApp API
-2. [ ] Create WhatsApp webhook handler
-3. [ ] Implement message routing
-4. [ ] Add multimedia support
-5. [ ] Test end-to-end flow
-
-**New Files**:
-- `app/integrations/whatsapp/client.py`
-- `app/integrations/whatsapp/webhooks.py`
-
-### Phase 5: Multimedia Processing
+### Phase 4: Multimedia Processing
 **Status**: Pending
 **Duration**: 2 hours
 
@@ -227,7 +211,7 @@ Tasks:
 - `app/services/voice_transcription.py`
 - `app/services/image_analysis.py`
 
-### Phase 6: Dashboard Backend APIs
+### Phase 5: Dashboard Backend APIs
 **Status**: Pending
 **Duration**: 2-3 hours
 
@@ -243,7 +227,7 @@ Tasks:
 - `app/services/analytics.py`
 - `app/services/insights.py`
 
-### Phase 7: Encryption & Privacy
+### Phase 6: Encryption & Privacy
 **Status**: Pending
 **Duration**: 1-2 hours
 
@@ -259,7 +243,7 @@ Tasks:
 - `app/security/auth.py`
 - `app/security/rate_limit.py`
 
-### Phase 8: Testing & Documentation
+### Phase 7: Testing & Documentation
 **Status**: Pending
 **Duration**: 2 hours
 
@@ -343,23 +327,26 @@ class TaskAgent(Agent):
         return {"reply": response}
 ```
 
-## Mem0 Integration (Official Library)
+## Mem0 Integration (Open Source - Local Configuration)
 
-### Current Custom Implementation
+**Important**: We are using the `mem0ai` **open source library** (NOT the cloud service).
+All data is stored locally in PostgreSQL + pgvector and Neo4j. No data leaves your infrastructure.
+
+### Current Custom Implementation (Fallback)
 ```python
-# app/mem0/server/main.py - Custom Mem0 microservice
+# app/mem0/server/main.py - Custom Mem0 microservice (legacy fallback)
 # - Custom PostgreSQL + pgvector implementation
 # - Custom embedding generation
 # - Custom search logic
 # - Microservice running on port 8081
 ```
 
-### New Official Mem0 Integration
+### New Mem0 Open Source Integration (Primary)
 ```python
-# app/services/memory.py - Using official mem0ai library
+# app/services/memory.py - Using mem0ai open source library
 from mem0 import MemoryClient
 
-# Initialize with PostgreSQL backend
+# Initialize with LOCAL PostgreSQL backend (no cloud!)
 memory = MemoryClient(
     config={
         "vector_store": {
@@ -580,8 +567,8 @@ PREMIUM_FEATURES_ENABLED=true
 
 ### Final Product
 - [ ] Calendar sync working for all 3 providers
-- [ ] Scheduled reminders functional
-- [ ] WhatsApp integration working
+- [ ] Scheduled reminders functional via Telegram
+- [ ] Telegram bot fully integrated
 - [ ] Voice note transcription working
 - [ ] Image analysis working
 - [ ] Dashboard APIs functional
@@ -592,16 +579,17 @@ PREMIUM_FEATURES_ENABLED=true
 
 ## Timeline
 
-- **Phase 1**: 2 hours (Core Migration)
-- **Phase 2**: 3 hours (Calendar)
-- **Phase 3**: 2 hours (Scheduler)
-- **Phase 4**: 2 hours (WhatsApp)
-- **Phase 5**: 2 hours (Multimedia)
-- **Phase 6**: 3 hours (Dashboard)
-- **Phase 7**: 2 hours (Security)
-- **Phase 8**: 2 hours (Testing & Docs)
+- **Phase 1**: 2 hours (Core Migration) ✅ COMPLETED
+- **Phase 2**: 3 hours (Calendar) ✅ COMPLETED
+- **Phase 3**: 2 hours (Scheduler) ✅ COMPLETED
+- **Phase 4**: 2 hours (Multimedia)
+- **Phase 5**: 3 hours (Dashboard)
+- **Phase 6**: 2 hours (Security)
+- **Phase 7**: 2 hours (Testing & Docs)
 
-**Total Estimated Time**: 18 hours
+**Total Estimated Time**: 16 hours
+**Completed**: 7 hours (Phases 1-3)
+**Remaining**: 9 hours (Phases 4-7)
 
 ## Next Steps
 
