@@ -12,10 +12,10 @@ from pydantic import BaseModel, Field, model_validator
 import sentry_sdk
 
 from app.core.db import init_pool
-from app.strands.agents.memory_agent import add_memory, search_memory
-from app.strands.conversation import ConversationInterface, IncomingMessage
-from app.strands.context_store import SessionStore
+from app.services.memory_utils import add_memory, search_memory
+from app.services.voice import transcribe_audio
 from app.crew.crew import get_crew
+from app.api import calendar
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / ".env", override=False)
@@ -38,9 +38,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(title="Jenny", version="0.5.0", lifespan=lifespan)
-session_store = SessionStore()
 crew = get_crew()
-conversation = ConversationInterface(crew, session_store)
+
+# Include API routers
+app.include_router(calendar.router)
 
 
 class QueryPayload(BaseModel):
@@ -71,17 +72,42 @@ async def health() -> dict[str, bool]:
 
 @app.post("/ask")
 async def ask(payload: QueryPayload) -> dict:
-    """Invoke the conversation interface and return the orchestrated reply."""
+    """Process user query directly through CrewAI orchestrator."""
 
     try:
-        message = IncomingMessage(
-            user_id=payload.user_id,
-            text=payload.text,
-            voice_url=payload.voice_url,
-            image_url=payload.image_url,
-            metadata=payload.metadata or {},
+        user_id = payload.user_id
+
+        # Handle different input types
+        query_text = None
+
+        if payload.text:
+            query_text = payload.text
+        elif payload.voice_url:
+            # Transcribe voice
+            query_text = await transcribe_audio(payload.voice_url)
+            if not query_text:
+                return {
+                    "agent": "voice_transcription",
+                    "reply": "I could not understand the audio. Could you type it instead?",
+                }
+        elif payload.image_url:
+            return {
+                "agent": "image_analysis",
+                "reply": "Image messages are not yet supported. Please send text.",
+            }
+
+        if not query_text:
+            raise ValueError("No valid input provided")
+
+        # Process with CrewAI directly - it will use Mem0 for context
+        response = await crew.process_query(
+            query=query_text,
+            user_id=user_id,
+            context={"user_id": user_id, "metadata": payload.metadata or {}}
         )
-        return await conversation.handle_message(message)
+
+        return response
+
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 

@@ -10,16 +10,16 @@ This guide will help you set up Jenny with all services running locally on your 
 
 **Message Flow:**
 ```
-Telegram Bot (or REST API)
+Telegram Bot (or REST API /ask endpoint)
     ↓
-ConversationInterface (app/strands/conversation.py)
+SessionStore (Redis - manages conversation history)
     ↓
-JennyCrewRunner (app/crew/crew.py)
+JennyCrewRunner.process_query() (app/crew/crew.py)
     ↓
 CrewAI with @CrewBase + Process.hierarchical
     ↓
 Hierarchical Manager (auto-created by CrewAI)
-    ↓ (analyzes query with LLM)
+    ↓ (analyzes query with LLM to determine intent)
     ↓
 Delegates to appropriate agent:
     • Memory Keeper → Mem0 operations
@@ -30,15 +30,16 @@ Delegates to appropriate agent:
     ↓
 Agent uses CrewAI tools (app/crew/tools.py)
     ↓
-Response back to user
+Response returned to user
 ```
 
 **Key Components:**
-- **CrewAI** = Main orchestrator (replaces old strands routing)
-- **Hierarchical Process** = Intelligent LLM-based routing
+- **CrewAI** = Main orchestrator (intelligent routing, no keywords!)
+- **Hierarchical Process** = LLM analyzes intent and delegates to agents
 - **5 Specialized Agents** = Defined in `app/crew/config/agents.yaml`
-- **Mem0** = Persistent memory (100% local)
-- **PostgreSQL + Redis + Neo4j** = Data storage (all local)
+- **SessionStore** = Redis-backed conversation context (app/strands/context_store.py)
+- **Mem0** = Persistent AI memory (100% local PostgreSQL + Neo4j)
+- **No ConversationInterface** = Telegram/API connects directly to CrewAI
 
 ## Prerequisites
 

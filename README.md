@@ -443,9 +443,9 @@ Jenny/
 │   │       └── main.py      # Mem0 microservice
 │   └── strands/
 │       ├── __init__.py
-│       ├── conversation.py  # Message handling interface
-│       ├── context_store.py # Session management
+│       ├── context_store.py # Session management (Redis)
 │       ├── orchestrator.py  # (Legacy - deprecated)
+│       ├── conversation.py  # (Legacy - deprecated)
 │       └── agents/          # (Legacy - kept for reference)
 │           ├── memory_agent.py
 │           ├── task_agent.py

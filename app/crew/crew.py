@@ -189,7 +189,7 @@ class JennyCrewRunner:
         Args:
             query: User's question or request
             user_id: User identifier
-            context: Additional context (session, metadata, etc.)
+            context: Additional context (metadata, etc.)
 
         Returns:
             Dictionary with agent response
@@ -197,23 +197,12 @@ class JennyCrewRunner:
         try:
             logger.info(f"Processing query for user {user_id}: {query}")
 
-            # Build context string from session history
-            context_str = f"User ID: {user_id}\n"
-            if context.get("session"):
-                session = context["session"]
-                if hasattr(session, 'history') and session.history:
-                    recent_history = session.history[-3:]  # Last 3 messages
-                    context_str += "Recent conversation:\n"
-                    for msg in recent_history:
-                        role = msg.get("role", "unknown")
-                        content = msg.get("content", "")
-                        context_str += f"  {role}: {content}\n"
-
             # Prepare inputs for the crew
+            # CrewAI will use Mem0 tools to get context automatically
             inputs = {
                 "query": query,
                 "user_id": user_id,
-                "context": context_str,
+                "context": f"User ID: {user_id}",  # Minimal context - Mem0 handles the rest
             }
 
             # Execute the crew (synchronous call, but we're in async context)
