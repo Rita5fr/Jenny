@@ -12,6 +12,8 @@ from pydantic import BaseModel, Field
 from app.services.memory_utils import add_memory, search_memory, get_user_context
 from app.services.tasks import create_task, list_tasks, complete_task, delete_task
 from app.integrations.calendar import get_calendar_service
+from app.services.calendar_auth import is_calendar_connected
+from app.integrations.calendar.google_calendar import GoogleCalendarProvider
 
 
 # ============================================
@@ -300,6 +302,27 @@ class CalendarCreateEventTool(BaseTool):
              location: Optional[str] = None) -> str:
         """Create calendar event synchronously."""
         try:
+            # Check if Google Calendar is connected
+            is_connected = asyncio.run(is_calendar_connected(user_id, "google"))
+
+            if not is_connected:
+                # Generate OAuth URL for the user to connect
+                try:
+                    google_calendar = GoogleCalendarProvider(user_id=user_id)
+                    auth_url = google_calendar.get_authorization_url()
+
+                    return (
+                        f"📅 To create calendar events, please connect your Google Calendar first!\n\n"
+                        f"Click this link to connect:\n{auth_url}\n\n"
+                        f"After connecting, I'll be able to create '{title}' and other events for you."
+                    )
+                except Exception as e:
+                    return (
+                        f"📅 Google Calendar is not connected. "
+                        f"Please ask the user to connect their calendar at /calendar/connect/google?user_id={user_id}"
+                    )
+
+            # Calendar is connected, proceed with creating event
             calendar = get_calendar_service(user_id=user_id)
 
             # Parse start time
@@ -336,7 +359,7 @@ class CalendarCreateEventTool(BaseTool):
                 time_str = start_dt.strftime("%b %d at %I:%M %p")
                 return f"✓ Created event: {title} on {time_str}"
 
-            return "Failed to create event. Make sure calendar is connected."
+            return "Failed to create event. Please try again."
         except Exception as exc:
             return f"Error creating calendar event: {exc}"
 

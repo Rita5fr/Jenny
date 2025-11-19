@@ -15,6 +15,7 @@ from app.core.db import init_pool
 from app.services.memory_utils import add_memory, search_memory
 from app.services.voice import transcribe_audio
 from app.crew.crew import get_crew
+from app.api import calendar
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / ".env", override=False)
@@ -38,6 +39,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="Jenny", version="0.5.0", lifespan=lifespan)
 crew = get_crew()
+
+# Include API routers
+app.include_router(calendar.router)
 
 
 class QueryPayload(BaseModel):
