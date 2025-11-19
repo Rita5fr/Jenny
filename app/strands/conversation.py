@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 from app.strands.agents.voice_agent import transcribe_audio
 from app.strands.context_store import SessionSnapshot, SessionStore
-from app.crew.crew import JennyCrew
+from app.crew.crew import JennyCrewRunner
 
 
 @dataclass
@@ -23,7 +23,7 @@ class IncomingMessage:
 class ConversationInterface:
     """High-level interface for handling multi-modal user input."""
 
-    def __init__(self, crew: JennyCrew, session_store: SessionStore) -> None:
+    def __init__(self, crew: JennyCrewRunner, session_store: SessionStore) -> None:
         self._crew = crew
         self._sessions = session_store
 

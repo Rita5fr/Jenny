@@ -1,144 +1,186 @@
-"""CrewAI Crew for Jenny - Multi-agent orchestration with intelligent routing."""
+"""CrewAI Crew for Jenny - Multi-agent orchestration following official best practices."""
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, List
 
-from crewai import Crew, Task, Process
-from crewai.tasks.task_output import TaskOutput
+from crewai import Agent, Crew, Process, Task
+from crewai.project import CrewBase, agent, crew, task
+from langchain_openai import ChatOpenAI
 
-from app.crew.agents import (
-    create_memory_agent,
-    create_task_agent,
-    create_calendar_agent,
-    create_profile_agent,
-    create_general_agent,
+from app.crew.tools import (
+    MemorySearchTool,
+    MemoryAddTool,
+    MemoryContextTool,
+    TaskCreateTool,
+    TaskListTool,
+    TaskCompleteTool,
+    TaskDeleteTool,
+    CalendarListEventsTool,
+    CalendarCreateEventTool,
+    CalendarSearchEventsTool,
 )
 
 logger = logging.getLogger(__name__)
 
 
+def get_llm():
+    """Get the LLM instance for agents."""
+    return ChatOpenAI(
+        model="gpt-4o-mini",  # Fast and cost-effective
+        temperature=0.7,
+    )
+
+
+@CrewBase
 class JennyCrew:
     """
-    Jenny's multi-agent crew using CrewAI.
+    Jenny's AI Assistant Crew using CrewAI best practices.
 
-    This replaces the old keyword-based orchestrator with intelligent LLM-based routing.
+    This crew uses Process.hierarchical for intelligent automatic routing.
+    A manager agent is automatically created to delegate tasks to specialist agents.
+    """
+
+    agents_config = 'config/agents.yaml'
+    tasks_config = 'config/tasks.yaml'
+
+    # ============================================
+    # Agent Definitions
+    # ============================================
+
+    @agent
+    def memory_keeper(self) -> Agent:
+        """Agent responsible for managing user memory using Mem0."""
+        return Agent(
+            config=self.agents_config['memory_keeper'],
+            tools=[
+                MemorySearchTool(),
+                MemoryAddTool(),
+                MemoryContextTool(),
+            ],
+            llm=get_llm(),
+            verbose=True,
+            allow_delegation=False,
+        )
+
+    @agent
+    def task_coordinator(self) -> Agent:
+        """Agent responsible for managing tasks and reminders."""
+        return Agent(
+            config=self.agents_config['task_coordinator'],
+            tools=[
+                TaskCreateTool(),
+                TaskListTool(),
+                TaskCompleteTool(),
+                TaskDeleteTool(),
+            ],
+            llm=get_llm(),
+            verbose=True,
+            allow_delegation=False,
+        )
+
+    @agent
+    def calendar_coordinator(self) -> Agent:
+        """Agent responsible for managing calendar events."""
+        return Agent(
+            config=self.agents_config['calendar_coordinator'],
+            tools=[
+                CalendarListEventsTool(),
+                CalendarCreateEventTool(),
+                CalendarSearchEventsTool(),
+            ],
+            llm=get_llm(),
+            verbose=True,
+            allow_delegation=False,
+        )
+
+    @agent
+    def profile_manager(self) -> Agent:
+        """Agent responsible for managing user preferences and profile."""
+        return Agent(
+            config=self.agents_config['profile_manager'],
+            tools=[
+                MemorySearchTool(),
+                MemoryAddTool(),
+                MemoryContextTool(),
+            ],
+            llm=get_llm(),
+            verbose=True,
+            allow_delegation=False,
+        )
+
+    @agent
+    def general_assistant(self) -> Agent:
+        """Agent for general conversation and questions."""
+        return Agent(
+            config=self.agents_config['general_assistant'],
+            tools=[
+                MemorySearchTool(),
+                MemoryContextTool(),
+            ],
+            llm=get_llm(),
+            verbose=True,
+            allow_delegation=False,  # Manager handles delegation
+        )
+
+    # ============================================
+    # Task Definition
+    # ============================================
+
+    @task
+    def handle_user_query_task(self) -> Task:
+        """
+        Main task for handling user queries.
+
+        With Process.hierarchical, the manager will delegate this to appropriate agents.
+        """
+        return Task(
+            config=self.tasks_config['handle_user_query'],
+            # No agent specified - manager decides!
+        )
+
+    # ============================================
+    # Crew Definition
+    # ============================================
+
+    @crew
+    def crew(self) -> Crew:
+        """
+        Creates Jenny's crew with hierarchical process.
+
+        The hierarchical process automatically:
+        - Creates a manager agent
+        - Manager analyzes queries using LLM
+        - Delegates to appropriate specialist agents
+        - No manual routing needed!
+        """
+        logger.info("Creating Jenny crew with hierarchical process")
+
+        return Crew(
+            agents=self.agents,  # Automatically populated by @agent decorators
+            tasks=self.tasks,     # Automatically populated by @task decorators
+            process=Process.hierarchical,  # ✅ Intelligent automatic routing!
+            manager_llm=get_llm(),  # LLM for the manager agent
+            verbose=True,
+        )
+
+
+# ============================================
+# Helper class for easier integration
+# ============================================
+
+class JennyCrewRunner:
+    """
+    Wrapper class for running Jenny crew with custom inputs.
+
+    This makes it easier to integrate with the existing FastAPI app.
     """
 
     def __init__(self):
-        """Initialize the crew with all specialized agents."""
-        # Create all agents
-        self.memory_agent = create_memory_agent()
-        self.task_agent = create_task_agent()
-        self.calendar_agent = create_calendar_agent()
-        self.profile_agent = create_profile_agent()
-        self.general_agent = create_general_agent()
-
-        # Store for easy access
-        self.agents = {
-            "memory": self.memory_agent,
-            "task": self.task_agent,
-            "calendar": self.calendar_agent,
-            "profile": self.profile_agent,
-            "general": self.general_agent,
-        }
-
-        logger.info("JennyCrew initialized with %d agents", len(self.agents))
-
-    def _create_task(self, query: str, user_id: str, context: Dict[str, Any]) -> Task:
-        """
-        Create a CrewAI task from user query.
-
-        The task description is crucial - it tells agents what to do.
-        """
-        # Build context string
-        context_str = f"User ID: {user_id}\n"
-
-        if context.get("session"):
-            session = context["session"]
-            if session.history:
-                recent_history = session.history[-3:]  # Last 3 messages
-                context_str += "Recent conversation:\n"
-                for msg in recent_history:
-                    role = msg.get("role", "unknown")
-                    content = msg.get("content", "")
-                    context_str += f"  {role}: {content}\n"
-
-        # Create task description with full context
-        task_description = f"""
-User Query: {query}
-
-Context:
-{context_str}
-
-Your task is to understand this query and provide a helpful response.
-
-Guidelines:
-1. Analyze what the user is asking for
-2. Determine if this requires:
-   - Remembering or recalling information (use memory tools)
-   - Creating/managing tasks or reminders (use task tools)
-   - Managing calendar or scheduling (use calendar tools)
-   - Updating user preferences (use memory tools)
-   - General conversation or questions (respond directly)
-
-3. Use the appropriate tools to help the user
-4. Provide a clear, concise, and friendly response
-5. If you need more information, ask clarifying questions
-
-Remember: You are Jenny, a helpful AI assistant. Be friendly, concise, and helpful.
-"""
-
-        return Task(
-            description=task_description,
-            expected_output="A helpful response to the user's query",
-            agent=self._select_primary_agent(query),
-        )
-
-    def _select_primary_agent(self, query: str) -> Any:
-        """
-        Intelligently select which agent should handle the query.
-
-        This is a heuristic-based pre-filter to optimize performance.
-        The LLM can still delegate if needed.
-        """
-        query_lower = query.lower()
-
-        # Memory keywords
-        if any(kw in query_lower for kw in [
-            "remember", "recall", "what did i", "what do i", "you know about",
-            "note", "save", "store", "forget", "my preference"
-        ]):
-            logger.info("Routing to memory_agent based on keywords")
-            return self.memory_agent
-
-        # Task keywords
-        if any(kw in query_lower for kw in [
-            "remind", "reminder", "task", "todo", "to-do", "list",
-            "complete", "done", "finish", "delete task"
-        ]):
-            logger.info("Routing to task_agent based on keywords")
-            return self.task_agent
-
-        # Calendar keywords
-        if any(kw in query_lower for kw in [
-            "calendar", "schedule", "meeting", "appointment", "event",
-            "book", "reserve", "what's on my", "whats on my"
-        ]):
-            logger.info("Routing to calendar_agent based on keywords")
-            return self.calendar_agent
-
-        # Profile keywords
-        if any(kw in query_lower for kw in [
-            "preference", "setting", "profile", "habit", "routine",
-            "dietary", "allergy", "favorite", "favourite"
-        ]):
-            logger.info("Routing to profile_agent based on keywords")
-            return self.profile_agent
-
-        # Default to general agent
-        logger.info("Routing to general_agent (no specific keywords matched)")
-        return self.general_agent
+        """Initialize the crew (created once, reused for all queries)."""
+        logger.info("Initializing Jenny crew...")
+        self._crew_instance = JennyCrew().crew()
+        logger.info("Jenny crew initialized successfully")
 
     async def process_query(self, query: str, user_id: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -155,34 +197,41 @@ Remember: You are Jenny, a helpful AI assistant. Be friendly, concise, and helpf
         try:
             logger.info(f"Processing query for user {user_id}: {query}")
 
-            # Create task
-            task = self._create_task(query, user_id, context)
+            # Build context string from session history
+            context_str = f"User ID: {user_id}\n"
+            if context.get("session"):
+                session = context["session"]
+                if hasattr(session, 'history') and session.history:
+                    recent_history = session.history[-3:]  # Last 3 messages
+                    context_str += "Recent conversation:\n"
+                    for msg in recent_history:
+                        role = msg.get("role", "unknown")
+                        content = msg.get("content", "")
+                        context_str += f"  {role}: {content}\n"
 
-            # Create crew with selected agent
-            # Using sequential process - single agent handles it
-            crew = Crew(
-                agents=[task.agent],  # Just the selected agent
-                tasks=[task],
-                process=Process.sequential,
-                verbose=True,
-            )
+            # Prepare inputs for the crew
+            inputs = {
+                "query": query,
+                "user_id": user_id,
+                "context": context_str,
+            }
 
-            # Execute the crew
-            # Note: CrewAI's kickoff is synchronous, but we can call it from async
-            result = crew.kickoff()
+            # Execute the crew (synchronous call, but we're in async context)
+            # CrewAI's kickoff is synchronous
+            result = self._crew_instance.kickoff(inputs=inputs)
 
-            # Extract response
-            if isinstance(result, TaskOutput):
+            # Extract response from CrewAI result
+            if hasattr(result, 'raw'):
                 reply = result.raw
             elif isinstance(result, str):
                 reply = result
             else:
                 reply = str(result)
 
-            logger.info(f"Crew completed. Agent: {task.agent.role}")
+            logger.info("Crew completed successfully")
 
             return {
-                "agent": task.agent.role,
+                "agent": "hierarchical_crew",  # Manager delegated
                 "reply": reply,
                 "success": True,
             }
@@ -196,14 +245,15 @@ Remember: You are Jenny, a helpful AI assistant. Be friendly, concise, and helpf
                 "error": str(exc),
             }
 
-    def get_agent_info(self) -> Dict[str, Dict[str, str]]:
+    def get_agent_info(self) -> Dict[str, str]:
         """Get information about all available agents."""
         return {
-            name: {
-                "role": agent.role,
-                "goal": agent.goal,
-            }
-            for name, agent in self.agents.items()
+            "memory_keeper": "Manages user memory and context using Mem0",
+            "task_coordinator": "Handles tasks, reminders, and todos",
+            "calendar_coordinator": "Manages calendar events across providers",
+            "profile_manager": "Handles user preferences and profile settings",
+            "general_assistant": "Handles general questions and conversations",
+            "hierarchical_manager": "Automatically delegates to specialist agents",
         }
 
 
@@ -211,15 +261,19 @@ Remember: You are Jenny, a helpful AI assistant. Be friendly, concise, and helpf
 # Singleton instance
 # ============================================
 
-_crew_instance = None
+_crew_runner = None
 
 
-def get_crew() -> JennyCrew:
-    """Get the singleton Jenny crew instance."""
-    global _crew_instance
-    if _crew_instance is None:
-        _crew_instance = JennyCrew()
-    return _crew_instance
+def get_crew() -> JennyCrewRunner:
+    """
+    Get the singleton Jenny crew runner instance.
+
+    The crew is created once and reused for all queries.
+    """
+    global _crew_runner
+    if _crew_runner is None:
+        _crew_runner = JennyCrewRunner()
+    return _crew_runner
 
 
-__all__ = ["JennyCrew", "get_crew"]
+__all__ = ["JennyCrew", "JennyCrewRunner", "get_crew"]
