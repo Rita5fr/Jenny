@@ -14,7 +14,6 @@ import sentry_sdk
 from app.core.db import init_pool
 from app.services.memory_utils import add_memory, search_memory
 from app.services.voice import transcribe_audio
-from app.strands.context_store import SessionStore
 from app.crew.crew import get_crew
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -38,7 +37,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 app = FastAPI(title="Jenny", version="0.5.0", lifespan=lifespan)
-session_store = SessionStore()
 crew = get_crew()
 
 
@@ -75,9 +73,6 @@ async def ask(payload: QueryPayload) -> dict:
     try:
         user_id = payload.user_id
 
-        # Get session context
-        session = await session_store.get_context(user_id)
-
         # Handle different input types
         query_text = None
 
@@ -100,25 +95,11 @@ async def ask(payload: QueryPayload) -> dict:
         if not query_text:
             raise ValueError("No valid input provided")
 
-        # Append user message to history
-        await session_store.append_history(
-            user_id, {"role": "user", "content": query_text}
-        )
-
-        # Process with CrewAI directly
+        # Process with CrewAI directly - it will use Mem0 for context
         response = await crew.process_query(
             query=query_text,
             user_id=user_id,
-            context={"user_id": user_id, "session": session, "metadata": payload.metadata or {}}
-        )
-
-        # Update session with agent used
-        await session_store.update_intent(user_id, response.get("agent", ""))
-
-        # Append assistant response to history
-        await session_store.append_history(
-            user_id,
-            {"role": "assistant", "content": response.get("reply"), "agent": response.get("agent")}
+            context={"user_id": user_id, "metadata": payload.metadata or {}}
         )
 
         return response

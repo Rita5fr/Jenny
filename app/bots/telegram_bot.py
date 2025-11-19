@@ -17,7 +17,6 @@ from telegram.ext import (
 )
 
 from app.core.db import init_pool
-from app.strands.context_store import SessionStore
 from app.services.voice import transcribe_audio
 from app.crew.crew import get_crew
 
@@ -32,7 +31,6 @@ class TelegramJennyBot:
 
     def __init__(self, token: str) -> None:
         self.token = token
-        self.session_store = SessionStore()
         self.crew = get_crew()
         init_pool()
         self.application = Application.builder().token(self.token).build()
@@ -56,7 +54,7 @@ class TelegramJennyBot:
         else:
             name = "there"
         await update.message.reply_text(
-            f"Hi {name}! I’m Jenny. Tell me something to remember or ask a question."
+            f"Hi {name}! I'm Jenny. Tell me something to remember or ask a question."
         )
 
     async def _handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -66,28 +64,11 @@ class TelegramJennyBot:
         user_id = str(update.effective_user.id)
         text = update.message.text
 
-        # Get session context
-        session = await self.session_store.get_context(user_id)
-
-        # Append user message to history
-        await self.session_store.append_history(
-            user_id, {"role": "user", "content": text}
-        )
-
-        # Process with CrewAI directly
+        # Process with CrewAI directly - it will use Mem0 for context
         response = await self.crew.process_query(
             query=text,
             user_id=user_id,
-            context={"user_id": user_id, "session": session}
-        )
-
-        # Update session with agent used
-        await self.session_store.update_intent(user_id, response.get("agent", ""))
-
-        # Append assistant response to history
-        await self.session_store.append_history(
-            user_id,
-            {"role": "assistant", "content": response.get("reply"), "agent": response.get("agent")}
+            context={"user_id": user_id}
         )
 
         await update.message.reply_text(response.get("reply", "I processed your message."))
@@ -109,29 +90,11 @@ class TelegramJennyBot:
             )
             return
 
-        # Get session context
-        session = await self.session_store.get_context(user_id)
-
-        # Append transcribed message to history
-        await self.session_store.append_history(
-            user_id,
-            {"role": "user", "content": transcript, "metadata": {"voice_url": voice_url}}
-        )
-
-        # Process with CrewAI directly
+        # Process with CrewAI directly - it will use Mem0 for context
         response = await self.crew.process_query(
             query=transcript,
             user_id=user_id,
-            context={"user_id": user_id, "session": session}
-        )
-
-        # Update session with agent used
-        await self.session_store.update_intent(user_id, response.get("agent", ""))
-
-        # Append assistant response to history
-        await self.session_store.append_history(
-            user_id,
-            {"role": "assistant", "content": response.get("reply"), "agent": response.get("agent")}
+            context={"user_id": user_id, "voice_url": voice_url}
         )
 
         await update.message.reply_text(response.get("reply", "I processed the audio."))
