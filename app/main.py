@@ -12,8 +12,8 @@ from pydantic import BaseModel, Field, model_validator
 import sentry_sdk
 
 from app.core.db import init_pool
-from app.strands.agents.memory_agent import add_memory, search_memory
-from app.strands.agents.voice_agent import transcribe_audio
+from app.services.memory_utils import add_memory, search_memory
+from app.services.voice import transcribe_audio
 from app.strands.context_store import SessionStore
 from app.crew.crew import get_crew
 

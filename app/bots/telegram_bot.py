@@ -18,7 +18,7 @@ from telegram.ext import (
 
 from app.core.db import init_pool
 from app.strands.context_store import SessionStore
-from app.strands.agents.voice_agent import transcribe_audio
+from app.services.voice import transcribe_audio
 from app.crew.crew import get_crew
 
 logger = logging.getLogger(__name__)

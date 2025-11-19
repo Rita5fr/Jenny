@@ -8,9 +8,9 @@ from typing import Any, Dict, List, Optional
 from crewai_tools import BaseTool
 from pydantic import BaseModel, Field
 
-# Import existing agent functions
-from app.strands.agents.memory_agent import add_memory, search_memory, get_user_context
-from app.strands.agents.task_agent import create_task, list_tasks, complete_task, delete_task
+# Import utility functions
+from app.services.memory_utils import add_memory, search_memory, get_user_context
+from app.services.tasks import create_task, list_tasks, complete_task, delete_task
 from app.integrations.calendar import get_calendar_service
 
 
