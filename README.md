@@ -119,17 +119,20 @@ That's it! See [INSTALL.md](INSTALL.md) for detailed automated setup guide.
   - Text messages
   - Voice/audio messages
   - Photo messages
-- Uses same orchestrator as HTTP API
+- Uses CrewAI orchestrator (same as HTTP API)
 
-#### 10. **Advanced Tools Agent** ✓ NEW!
-- Integrated with strands-agents-tools library (50+ tools)
+#### 10. **CrewAI Multi-Agent Orchestration** ✓ NEW!
+- Powered by CrewAI with hierarchical manager
+- Intelligent LLM-based routing (no keywords needed)
+- 5 specialized agents working together
+- Integrated with strands-agents-tools library (50+ utility tools)
 - Capabilities include:
+  - Memory management (Mem0)
+  - Task and calendar coordination
   - Web search and content extraction
-  - File operations (read, write, edit)
-  - HTTP requests to APIs
-  - Python code execution (REPL)
+  - File operations and API requests
   - And more!
-- Ask: "list tools" to see all available tools
+- Ask naturally: "What can you help me with?"
 
 ### Planned Features (Stubs)
 
@@ -152,8 +155,8 @@ That's it! See [INSTALL.md](INSTALL.md) for detailed automated setup guide.
 │         └───────────┬───────────┘              │
 │                     │                          │
 │            ┌────────▼────────┐                 │
+│            │  CrewAI         │                 │
 │            │  Orchestrator   │                 │
-│            │ (Intent Router) │                 │
 │            └────────┬────────┘                 │
 │                     │                          │
 │      ┌──────────────┼──────────────┐          │
@@ -218,12 +221,15 @@ That's it! See [INSTALL.md](INSTALL.md) for detailed automated setup guide.
 - APOC plugin included for advanced queries
 
 ### AI/LLM Integration
-- **OpenAI** - Embeddings (text-embedding-3-small)
+- **OpenAI** - Embeddings (text-embedding-3-small) and GPT-4o-mini for orchestration
 - **Gemini** - Audio transcription and knowledge queries (optional)
 - **DeepSeek** - Reasoning for recall agent (optional)
 
 ### Agent Tools & Frameworks
-- **strands-agents-tools** - 50+ pre-built tools for file ops, web search, code execution
+- **CrewAI** - Multi-agent orchestration framework with hierarchical routing
+- **LangChain** - Tool integration for CrewAI agents
+- **strands-agents-tools** - 50+ pre-built utility tools for file ops, web search, code execution
+- **Mem0** - Open source AI memory layer (local PostgreSQL + Neo4j)
 - **python-telegram-bot 22.5** - Telegram bot integration
 
 ## Installation
@@ -425,21 +431,25 @@ Jenny/
 │   │   ├── config.py        # Settings management
 │   │   ├── db.py            # Postgres connection
 │   │   └── graph.py         # Neo4j utilities
+│   ├── crew/                # ✅ CrewAI orchestration (MAIN)
+│   │   ├── __init__.py
+│   │   ├── crew.py          # JennyCrew (@CrewBase pattern)
+│   │   ├── tools.py         # CrewAI tools
+│   │   └── config/
+│   │       ├── agents.yaml  # Agent definitions
+│   │       └── tasks.yaml   # Task templates
 │   ├── mem0/
 │   │   └── server/
 │   │       └── main.py      # Mem0 microservice
 │   └── strands/
 │       ├── __init__.py
-│       ├── orchestrator.py  # Intent routing
-│       ├── conversation.py  # Message handling
+│       ├── conversation.py  # Message handling interface
 │       ├── context_store.py # Session management
-│       └── agents/
+│       ├── orchestrator.py  # (Legacy - deprecated)
+│       └── agents/          # (Legacy - kept for reference)
 │           ├── memory_agent.py
 │           ├── task_agent.py
-│           ├── profile_agent.py
-│           ├── recall_agent.py
-│           ├── knowledge_agent.py
-│           └── voice_agent.py
+│           └── ...
 ├── tests/
 │   ├── test_phase1.py
 │   └── test_phase2.py
@@ -449,10 +459,40 @@ Jenny/
 
 ### Adding New Agents
 
-1. Create agent file in `app/strands/agents/`
-2. Implement agent function with signature: `async def agent(query: str, context: Dict) -> Dict`
-3. Register in `orchestrator.py`
-4. Add intent keywords to `INTENT_MAP`
+Jenny uses **CrewAI** for intelligent multi-agent orchestration. To add a new agent:
+
+1. **Define agent in `app/crew/config/agents.yaml`:**
+   ```yaml
+   your_agent:
+     role: Your Agent Role
+     goal: What this agent should accomplish
+     backstory: Detailed description of agent's expertise
+   ```
+
+2. **Add agent method in `app/crew/crew.py`:**
+   ```python
+   @agent
+   def your_agent(self) -> Agent:
+       return Agent(
+           config=self.agents_config['your_agent'],
+           tools=[YourTool1(), YourTool2()],
+           llm=get_llm(),
+           verbose=True,
+       )
+   ```
+
+3. **Create CrewAI tools in `app/crew/tools.py`** (if needed):
+   ```python
+   class YourTool(BaseTool):
+       name: str = "your_tool"
+       description: str = "What this tool does"
+
+       def _run(self, param: str) -> str:
+           # Your logic
+           return result
+   ```
+
+No keyword mapping needed! CrewAI's hierarchical manager automatically routes queries to the right agent using LLM intelligence.
 
 ### Code Quality
 

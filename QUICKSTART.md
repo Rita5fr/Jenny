@@ -244,9 +244,10 @@ curl -X POST http://localhost:8044/ask \
 3. Test with Telegram photos
 
 **New Agent:**
-1. Create: `app/strands/agents/your_agent.py`
-2. Register in: `app/strands/orchestrator.py`
-3. Add intent keywords
+1. Define in: `app/crew/config/agents.yaml`
+2. Add @agent method in: `app/crew/crew.py`
+3. Create tools in: `app/crew/tools.py` (optional)
+4. No keywords needed - CrewAI routes automatically!
 
 **Dashboard:**
 1. Create: `app/api/dashboard.py`
