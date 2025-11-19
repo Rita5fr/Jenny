@@ -199,10 +199,11 @@ Jenny/
 │   ├── api/routes.py           # Main API endpoints
 │   ├── integrations/calendar/  # ✅ DONE: Calendar sync (3 providers)
 │   ├── scheduler/              # ✅ DONE: Reminders system
-│   ├── services/memory.py      # ✅ DONE: Mem0 integration
-│   ├── strands/                # Legacy agent implementations
-│   │   ├── agents/             # Original agent functions (deprecated)
-│   │   └── conversation.py     # Conversation interface (uses CrewAI)
+│   ├── services/               # ✅ DONE: Service layer utilities
+│   │   ├── memory.py           # Mem0 integration
+│   │   ├── tasks.py            # Task management
+│   │   ├── voice.py            # Voice transcription
+│   │   └── calendar_auth.py    # Calendar OAuth
 │   └── main.py                 # FastAPI app entry point
 ├── docker-compose.yml          # ✅ DONE: PostgreSQL, Redis, Neo4j
 ├── requirements.txt            # ✅ DONE: CrewAI + all dependencies
@@ -234,14 +235,16 @@ curl -X POST http://localhost:8044/ask \
 ### Adding a Feature?
 
 **Voice Transcription:**
-1. Create: `app/services/voice_transcription.py`
-2. Update: `app/strands/agents/multimedia_agent.py`
-3. Test with Telegram voice notes
+1. Utility exists: `app/services/voice.py`
+2. Add tools in: `app/crew/tools.py`
+3. Update agent in: `app/crew/config/agents.yaml`
+4. Test with Telegram voice notes
 
 **Image Analysis:**
 1. Create: `app/services/image_analysis.py`
-2. Update: `app/strands/agents/multimedia_agent.py`
-3. Test with Telegram photos
+2. Create tool in: `app/crew/tools.py`
+3. Update agent in: `app/crew/config/agents.yaml`
+4. Test with Telegram photos
 
 **New Agent:**
 1. Define in: `app/crew/config/agents.yaml`

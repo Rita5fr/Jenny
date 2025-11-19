@@ -19,10 +19,8 @@ crewai-tools>=0.15.0
 # LangChain - For tool integration with CrewAI
 langchain>=0.3.0
 langchain-openai>=0.2.0
+langchain-google-genai  # Optional: For Gemini models
 langchain-community>=0.3.0
-
-# Strands Tools - 70+ pre-built tools (can wrap for CrewAI)
-strands-agents-tools>=0.1.0
 
 # Official Mem0 - AI memory layer
 mem0ai>=0.1.0

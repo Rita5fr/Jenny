@@ -121,7 +121,7 @@ job_id = await schedule_recurring_reminder(
 ```
 
 ### 4. **Enhanced Calendar Agent** ✅
-**Location**: `app/strands/agents/calendar_agent.py`
+**Location**: `app/crew/crew.py` (calendar_coordinator agent)
 
 **What it does**:
 - Natural language understanding: "What's on my calendar tomorrow?"
@@ -446,17 +446,12 @@ Jenny/
 │   ├── scheduler/                 # ✅ Scheduling system
 │   │   ├── scheduler.py
 │   │   └── reminder_service.py
-│   ├── services/
-│   │   └── memory.py              # ✅ Official mem0 integration
-│   └── strands/
-│       ├── context_store.py       # Session management (Redis)
-│       ├── orchestrator.py        # (Legacy - deprecated)
-│       ├── conversation.py        # (Legacy - deprecated)
-│       └── agents/                # (Legacy - kept for reference)
-│           ├── calendar_agent.py
-│           ├── memory_agent.py
-│           ├── task_agent.py
-│           └── ...
+│   └── services/                  # Service layer utilities
+│       ├── memory.py              # ✅ Official mem0 integration
+│       ├── memory_utils.py        # Mem0 wrapper functions
+│       ├── tasks.py               # Task management functions
+│       ├── voice.py               # Voice transcription
+│       └── calendar_auth.py       # Calendar OAuth storage
 ├── docker-compose.yml             # ✅ PostgreSQL, Redis, Neo4j
 ├── requirements.txt               # ✅ All dependencies
 ├── .env.example                   # ✅ Configuration template

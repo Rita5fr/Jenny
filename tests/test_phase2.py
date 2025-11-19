@@ -1,14 +1,37 @@
+"""
+OUTDATED TESTS - Legacy Orchestrator System
+
+These tests were written for the old keyword-based orchestrator system (app.strands).
+This system has been completely replaced by CrewAI with intelligent LLM-based routing.
+
+Status: DEPRECATED - Tests need to be rewritten for CrewAI architecture
+Location of new system: app/crew/crew.py (JennyCrew with @CrewBase)
+
+TODO: Rewrite these tests for CrewAI:
+- Test CrewAI agent delegation
+- Test Memory Keeper agent
+- Test Task Coordinator agent
+- Test Calendar Coordinator agent
+- Test General Assistant agent
+
+For now, these tests are disabled as they reference non-existent modules.
+"""
+
 from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
 import pytest
-from fastapi.testclient import TestClient
 
-from app import main
-from app.strands import conversation as conversation_module
+# Legacy imports - no longer exist
+# from app import main
+# from app.strands import conversation as conversation_module
+# from fastapi.testclient import TestClient
 
 
+# All tests below are commented out as they test the legacy orchestrator system
+
+"""
 @pytest.fixture()
 def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setattr(main, "init_pool", lambda: None)
@@ -70,3 +93,4 @@ def test_knowledge_routing(client: TestClient, monkeypatch: pytest.MonkeyPatch) 
     result = response.json()
     assert result["agent"] == "knowledge_agent"
     assert "antioxidants" in result["reply"].lower()
+"""

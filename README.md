@@ -129,12 +129,12 @@ That's it! See [INSTALL.md](INSTALL.md) for detailed automated setup guide.
 - Powered by CrewAI with hierarchical manager
 - Intelligent LLM-based routing (no keywords needed)
 - 5 specialized agents working together
-- Integrated with strands-agents-tools library (50+ utility tools)
+- Custom tools for memory, tasks, and calendar operations
 - Capabilities include:
   - Memory management (Mem0)
   - Task and calendar coordination
-  - Web search and content extraction
-  - File operations and API requests
+  - Natural language understanding
+  - Multi-modal support (text, voice, images)
   - And more!
 - Ask naturally: "What can you help me with?"
 
@@ -248,7 +248,7 @@ That's it! See [INSTALL.md](INSTALL.md) for detailed automated setup guide.
 ### Agent Tools & Frameworks
 - **CrewAI** - Multi-agent orchestration framework with hierarchical routing
 - **LangChain** - Tool integration for CrewAI agents
-- **strands-agents-tools** - 50+ pre-built utility tools for file ops, web search, code execution
+- **Custom CrewAI Tools** - Memory, task management, calendar operations
 - **Mem0** - Open source AI memory layer (local PostgreSQL + Neo4j)
 - **python-telegram-bot 22.5** - Telegram bot integration
 
