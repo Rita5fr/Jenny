@@ -12,8 +12,6 @@ This guide will help you set up Jenny with all services running locally on your 
 ```
 Telegram Bot (or REST API /ask endpoint)
     ↓
-SessionStore (Redis - manages conversation history)
-    ↓
 JennyCrewRunner.process_query() (app/crew/crew.py)
     ↓
 CrewAI with @CrewBase + Process.hierarchical
@@ -24,11 +22,16 @@ Hierarchical Manager (auto-created by CrewAI)
 Delegates to appropriate agent:
     • Memory Keeper → Mem0 operations
     • Task Coordinator → Tasks/reminders
-    • Calendar Coordinator → Calendar events
+    • Calendar Coordinator → Calendar events (auto OAuth)
     • Profile Manager → User preferences
     • General Assistant → Conversations
     ↓
 Agent uses CrewAI tools (app/crew/tools.py)
+    ↓
+Tools access services:
+    • Mem0 (PostgreSQL + Neo4j) for context & memory
+    • PostgreSQL for tasks
+    • Google Calendar API (OAuth)
     ↓
 Response returned to user
 ```
@@ -37,9 +40,9 @@ Response returned to user
 - **CrewAI** = Main orchestrator (intelligent routing, no keywords!)
 - **Hierarchical Process** = LLM analyzes intent and delegates to agents
 - **5 Specialized Agents** = Defined in `app/crew/config/agents.yaml`
-- **SessionStore** = Redis-backed conversation context (app/strands/context_store.py)
 - **Mem0** = Persistent AI memory (100% local PostgreSQL + Neo4j)
-- **No ConversationInterface** = Telegram/API connects directly to CrewAI
+- **Calendar OAuth** = Automatic link generation when calendar not connected
+- **Direct Integration** = Telegram/API → CrewAI → Mem0 (no intermediate layers)
 
 ## Prerequisites
 
