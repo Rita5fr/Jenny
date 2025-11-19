@@ -111,7 +111,12 @@ class JennyCrew:
 
     @agent
     def general_assistant(self) -> Agent:
-        """Agent for general conversation and questions."""
+        """
+        Primary conversational agent - handles greetings and general conversations.
+
+        This is the MAIN agent that users interact with. It can delegate to
+        specialist agents when needed.
+        """
         return Agent(
             config=self.agents_config['general_assistant'],
             tools=[
@@ -120,7 +125,7 @@ class JennyCrew:
             ],
             llm=get_llm(),
             verbose=True,
-            allow_delegation=False,  # Manager handles delegation
+            allow_delegation=True,  # Can delegate to specialist agents
         )
 
     # ============================================
