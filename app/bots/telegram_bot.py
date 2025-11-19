@@ -19,7 +19,7 @@ from telegram.ext import (
 from app.core.db import init_pool
 from app.strands.conversation import ConversationInterface, IncomingMessage
 from app.strands.context_store import SessionStore
-from app.strands.orchestrator import Orchestrator
+from app.crew.crew import get_crew
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +33,8 @@ class TelegramJennyBot:
     def __init__(self, token: str) -> None:
         self.token = token
         self.session_store = SessionStore()
-        self.orchestrator = Orchestrator(session_store=self.session_store)
-        self.conversation = ConversationInterface(self.orchestrator, self.session_store)
+        self.crew = get_crew()
+        self.conversation = ConversationInterface(self.crew, self.session_store)
         init_pool()
         self.application = Application.builder().token(self.token).build()
         self._register_handlers()

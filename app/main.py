@@ -15,7 +15,7 @@ from app.core.db import init_pool
 from app.strands.agents.memory_agent import add_memory, search_memory
 from app.strands.conversation import ConversationInterface, IncomingMessage
 from app.strands.context_store import SessionStore
-from app.strands.orchestrator import Orchestrator
+from app.crew.crew import get_crew
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT_DIR / ".env", override=False)
@@ -37,10 +37,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Shutdown (if needed in the future)
 
 
-app = FastAPI(title="Jenny", version="0.4.0", lifespan=lifespan)
+app = FastAPI(title="Jenny", version="0.5.0", lifespan=lifespan)
 session_store = SessionStore()
-orchestrator = Orchestrator(session_store=session_store)
-conversation = ConversationInterface(orchestrator, session_store)
+crew = get_crew()
+conversation = ConversationInterface(crew, session_store)
 
 
 class QueryPayload(BaseModel):

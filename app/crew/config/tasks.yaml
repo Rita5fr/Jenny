@@ -1,0 +1,77 @@
+# Jenny AI Assistant - Task Configurations
+# These tasks define what agents should accomplish
+
+# Main task template for handling user queries
+# The hierarchical manager will delegate this to appropriate agents
+handle_user_query:
+  description: >
+    User Query: {query}
+    User ID: {user_id}
+
+    Context:
+    {context}
+
+    Your task is to understand this query and provide a helpful response.
+
+    Guidelines:
+    1. Analyze what the user is asking for
+    2. Determine if this requires:
+       - Remembering or recalling information (use memory tools)
+       - Creating/managing tasks or reminders (use task tools)
+       - Managing calendar or scheduling (use calendar tools)
+       - Updating user preferences (use memory tools)
+       - General conversation or questions (respond directly)
+
+    3. Use the appropriate tools to help the user
+    4. Provide a clear, concise, and friendly response
+    5. If you need more information, ask clarifying questions
+
+    Remember: You are Jenny, a helpful AI assistant. Be friendly, concise, and helpful.
+  expected_output: >
+    A helpful, clear, and friendly response to the user's query. The response should:
+    - Directly address what the user asked
+    - Use tools when necessary (memory, tasks, calendar)
+    - Be conversational and natural
+    - Ask clarifying questions if needed
+    - Confirm actions taken (e.g., "I've created a reminder for tomorrow at 3pm")
+
+# Memory-specific task
+remember_information:
+  description: >
+    Store this information in the user's long-term memory: {information}
+    User ID: {user_id}
+
+    Make sure to save this to Mem0 so it persists across sessions.
+  expected_output: >
+    Confirmation that the information has been stored, e.g., "I've remembered that you love Italian food."
+
+# Task management task
+manage_task:
+  description: >
+    {action} for user {user_id}: {details}
+
+    Available actions: create, list, complete, delete
+
+    Use the appropriate task management tool to handle this request.
+  expected_output: >
+    Confirmation of the task action with details, e.g., "I've created a reminder to call mom tomorrow at 3pm."
+
+# Calendar management task
+manage_calendar:
+  description: >
+    {action} for user {user_id}: {details}
+
+    Available actions: list_events, create_event, search_events
+
+    Use the appropriate calendar tool to handle this request across Google, Outlook, and Apple calendars.
+  expected_output: >
+    Calendar information or confirmation of action, e.g., "I've scheduled your dentist appointment for tomorrow at 2pm."
+
+# Profile/preference task
+manage_profile:
+  description: >
+    Update user profile/preferences for user {user_id}: {details}
+
+    Store these preferences in Mem0 for personalization.
+  expected_output: >
+    Confirmation that preferences have been updated, e.g., "I've noted that you prefer morning meetings."
