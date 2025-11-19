@@ -43,7 +43,13 @@ That's it! See [INSTALL.md](INSTALL.md) for detailed automated setup guide.
 3. **Configure environment:**
    ```bash
    cp .env.example .env
-   # Edit .env with your OpenAI API key (defaults work for local databases!)
+   # Edit .env with your API keys:
+   # - OPENAI_API_KEY (required for embeddings)
+   # - DEEPSEEK_API_KEY (recommended for cost savings)
+   # - CREWAI_LLM_PROVIDER=deepseek (optional, defaults to openai)
+   # - MEM0_LLM_PROVIDER=deepseek (optional, defaults to deepseek)
+
+   # See MODEL_CONFIGURATION.md for all options
    ```
 
 4. **Start services:**
@@ -219,9 +225,25 @@ That's it! See [INSTALL.md](INSTALL.md) for detailed automated setup guide.
 - APOC plugin included for advanced queries
 
 ### AI/LLM Integration
-- **OpenAI** - Embeddings (text-embedding-3-small) and GPT-4o-mini for orchestration
+
+**Flexible Model Configuration** - Choose your preferred LLM provider:
+
+**CrewAI Agents** (Conversational AI):
+- **DeepSeek Chat** ⭐ Recommended - Best cost/performance ratio (~20x cheaper than GPT-4)
+- **Gemini 2.5 Flash** - Fast and capable, good for real-time interactions
+- **OpenAI GPT-4o-mini** - Most reliable, best for complex reasoning (default)
+
+**Mem0 Memory Operations** (Reading/retrieving memories):
+- **DeepSeek Chat** ⭐ Recommended - Cost-effective for memory operations
+- **OpenAI GPT-4o-mini** - More reliable but more expensive
+
+**Mem0 Embeddings** (Saving memories):
+- **OpenAI text-embedding-3-small** ✓ Always use - Best quality for semantic search
+
+**Other Services**:
 - **Gemini** - Audio transcription and knowledge queries (optional)
-- **DeepSeek** - Reasoning for recall agent (optional)
+
+**📖 See [MODEL_CONFIGURATION.md](MODEL_CONFIGURATION.md) for detailed configuration guide**
 
 ### Agent Tools & Frameworks
 - **CrewAI** - Multi-agent orchestration framework with hierarchical routing

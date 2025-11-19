@@ -55,6 +55,12 @@ def get_mem0_config() -> Dict[str, Any]:
     """
     Get Mem0 configuration from environment variables.
 
+    Configuration supports:
+    - Vector store: pgvector (for storing embeddings)
+    - Embedder: OpenAI text-embedding-3-small (for creating embeddings - used when saving memories)
+    - LLM: DeepSeek Chat or OpenAI (for reading/retrieving memories and generating responses)
+    - Graph store: Neo4j (optional, for complex relationships)
+
     Returns:
         Configuration dictionary for Mem0 client
     """
@@ -72,11 +78,35 @@ def get_mem0_config() -> Dict[str, Any]:
         "embedder": {
             "provider": "openai",
             "config": {
-                "model": os.getenv("MEMO_EMBED_MODEL", "text-embedding-3-small"),
+                "model": os.getenv("MEM0_EMBED_MODEL", "text-embedding-3-small"),
                 "api_key": os.getenv("OPENAI_API_KEY"),
             },
         },
     }
+
+    # LLM configuration for reading/retrieving memories
+    # Supports: openai (default), deepseek
+    llm_provider = os.getenv("MEM0_LLM_PROVIDER", "deepseek").lower()
+
+    if llm_provider == "deepseek":
+        # DeepSeek Chat for memory operations (reading/retrieving)
+        config["llm"] = {
+            "provider": "openai",  # DeepSeek uses OpenAI-compatible API
+            "config": {
+                "model": os.getenv("MEM0_LLM_MODEL", "deepseek-chat"),
+                "api_key": os.getenv("DEEPSEEK_API_KEY"),
+                "base_url": "https://api.deepseek.com/v1",
+            },
+        }
+    else:
+        # OpenAI GPT for memory operations (fallback)
+        config["llm"] = {
+            "provider": "openai",
+            "config": {
+                "model": os.getenv("MEM0_LLM_MODEL", "gpt-4o-mini"),
+                "api_key": os.getenv("OPENAI_API_KEY"),
+            },
+        }
 
     # Optional: Add Neo4j graph store if configured
     neo4j_uri = os.getenv("NEO4J_URI")

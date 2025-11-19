@@ -166,6 +166,70 @@ docker-compose logs neo4j
    TELEGRAM_BOT_TOKEN=your-bot-token
    ```
 
+6. **Configure LLM Models** (Recommended - Cost Optimization):
+
+   Jenny supports multiple LLM providers for different components. You can mix and match:
+
+   **For CrewAI Agents** (Jenny's conversational AI):
+   ```bash
+   # Option 1: DeepSeek (Recommended - Best cost/performance)
+   CREWAI_LLM_PROVIDER=deepseek
+   DEEPSEEK_API_KEY=your-deepseek-key
+   DEEPSEEK_MODEL=deepseek-chat
+
+   # Option 2: Gemini (Fast and capable)
+   CREWAI_LLM_PROVIDER=gemini
+   GOOGLE_API_KEY=your-google-api-key
+   GEMINI_MODEL=gemini-2.0-flash-exp
+
+   # Option 3: OpenAI (Most reliable, default)
+   CREWAI_LLM_PROVIDER=openai
+   OPENAI_MODEL=gpt-4o-mini
+   ```
+
+   **For Mem0 Memory Operations** (Reading/retrieving memories):
+   ```bash
+   # Recommended: DeepSeek for cost savings
+   MEM0_LLM_PROVIDER=deepseek
+   MEM0_LLM_MODEL=deepseek-chat
+
+   # Alternative: OpenAI
+   MEM0_LLM_PROVIDER=openai
+   MEM0_LLM_MODEL=gpt-4o-mini
+   ```
+
+   **For Mem0 Embeddings** (Saving memories - always use OpenAI):
+   ```bash
+   MEM0_EMBED_MODEL=text-embedding-3-small
+   ```
+
+   **💡 Recommended Configuration** (Best cost/performance):
+   ```bash
+   # Use DeepSeek for agents and memory operations
+   CREWAI_LLM_PROVIDER=deepseek
+   DEEPSEEK_API_KEY=your-deepseek-api-key
+   DEEPSEEK_MODEL=deepseek-chat
+
+   MEM0_LLM_PROVIDER=deepseek
+   MEM0_LLM_MODEL=deepseek-chat
+
+   # Always use OpenAI for embeddings (best quality)
+   MEM0_EMBED_MODEL=text-embedding-3-small
+   OPENAI_API_KEY=your-openai-api-key  # For embeddings only
+   ```
+
+   **📖 For detailed model configuration guide**, see [MODEL_CONFIGURATION.md](MODEL_CONFIGURATION.md).
+
+   **Getting API Keys:**
+   - OpenAI: https://platform.openai.com/api-keys
+   - DeepSeek: https://platform.deepseek.com/
+   - Google (Gemini): https://makersuite.google.com/app/apikey
+
+   **Installing Gemini support** (if using Gemini):
+   ```bash
+   pip install langchain-google-genai
+   ```
+
 ### Step 4: Start Jenny Services
 
 #### Terminal 1: Mem0 Microservice
