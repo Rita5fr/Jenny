@@ -17,8 +17,8 @@ from telegram.ext import (
 )
 
 from app.core.db import init_pool
-from app.strands.conversation import ConversationInterface, IncomingMessage
 from app.strands.context_store import SessionStore
+from app.strands.agents.voice_agent import transcribe_audio
 from app.crew.crew import get_crew
 
 logger = logging.getLogger(__name__)
@@ -28,13 +28,12 @@ load_dotenv(ROOT_DIR / ".env", override=False)
 
 
 class TelegramJennyBot:
-    """Adapter that pipes Telegram updates into the Jenny conversation interface."""
+    """Telegram bot that connects directly to CrewAI orchestrator."""
 
     def __init__(self, token: str) -> None:
         self.token = token
         self.session_store = SessionStore()
         self.crew = get_crew()
-        self.conversation = ConversationInterface(self.crew, self.session_store)
         init_pool()
         self.application = Application.builder().token(self.token).build()
         self._register_handlers()
@@ -63,36 +62,88 @@ class TelegramJennyBot:
     async def _handle_text(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not update.message or not update.message.text:
             return
+
         user_id = str(update.effective_user.id)
-        message = IncomingMessage(user_id=user_id, text=update.message.text)
-        reply = await self.conversation.handle_message(message)
-        await update.message.reply_text(reply.get("reply", ""))
+        text = update.message.text
+
+        # Get session context
+        session = await self.session_store.get_context(user_id)
+
+        # Append user message to history
+        await self.session_store.append_history(
+            user_id, {"role": "user", "content": text}
+        )
+
+        # Process with CrewAI directly
+        response = await self.crew.process_query(
+            query=text,
+            user_id=user_id,
+            context={"user_id": user_id, "session": session}
+        )
+
+        # Update session with agent used
+        await self.session_store.update_intent(user_id, response.get("agent", ""))
+
+        # Append assistant response to history
+        await self.session_store.append_history(
+            user_id,
+            {"role": "assistant", "content": response.get("reply"), "agent": response.get("agent")}
+        )
+
+        await update.message.reply_text(response.get("reply", "I processed your message."))
 
     async def _handle_voice(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not update.message or not update.message.voice:
             return
+
+        user_id = str(update.effective_user.id)
         file = await context.bot.get_file(update.message.voice.file_id)
         voice_url = file.file_path
-        message = IncomingMessage(
-            user_id=str(update.effective_user.id),
-            voice_url=voice_url,
-            metadata={"telegram": {"voice_duration": update.message.voice.duration}},
+
+        # Transcribe audio
+        transcript = await transcribe_audio(voice_url)
+
+        if not transcript:
+            await update.message.reply_text(
+                "I could not understand the audio. Could you type it instead?"
+            )
+            return
+
+        # Get session context
+        session = await self.session_store.get_context(user_id)
+
+        # Append transcribed message to history
+        await self.session_store.append_history(
+            user_id,
+            {"role": "user", "content": transcript, "metadata": {"voice_url": voice_url}}
         )
-        reply = await self.conversation.handle_message(message)
-        await update.message.reply_text(reply.get("reply", "I processed the audio."))
+
+        # Process with CrewAI directly
+        response = await self.crew.process_query(
+            query=transcript,
+            user_id=user_id,
+            context={"user_id": user_id, "session": session}
+        )
+
+        # Update session with agent used
+        await self.session_store.update_intent(user_id, response.get("agent", ""))
+
+        # Append assistant response to history
+        await self.session_store.append_history(
+            user_id,
+            {"role": "assistant", "content": response.get("reply"), "agent": response.get("agent")}
+        )
+
+        await update.message.reply_text(response.get("reply", "I processed the audio."))
 
     async def _handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if not update.message or not update.message.photo:
             return
-        file = await context.bot.get_file(update.message.photo[-1].file_id)
-        image_url = file.file_path
-        message = IncomingMessage(
-            user_id=str(update.effective_user.id),
-            image_url=image_url,
-            metadata={"telegram": {"caption": update.message.caption}},
+
+        # Image processing not yet implemented
+        await update.message.reply_text(
+            "Image messages are not yet supported. Please send text or voice messages."
         )
-        reply = await self.conversation.handle_message(message)
-        await update.message.reply_text(reply.get("reply", "I received the image."))
 
     def run(self) -> None:
         logger.info("Starting Telegram bot polling.")

@@ -449,9 +449,9 @@ Jenny/
 │   ├── services/
 │   │   └── memory.py              # ✅ Official mem0 integration
 │   └── strands/
-│       ├── conversation.py        # Message handling interface
-│       ├── context_store.py       # Session management
+│       ├── context_store.py       # Session management (Redis)
 │       ├── orchestrator.py        # (Legacy - deprecated)
+│       ├── conversation.py        # (Legacy - deprecated)
 │       └── agents/                # (Legacy - kept for reference)
 │           ├── calendar_agent.py
 │           ├── memory_agent.py

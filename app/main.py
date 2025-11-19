@@ -13,7 +13,7 @@ import sentry_sdk
 
 from app.core.db import init_pool
 from app.strands.agents.memory_agent import add_memory, search_memory
-from app.strands.conversation import ConversationInterface, IncomingMessage
+from app.strands.agents.voice_agent import transcribe_audio
 from app.strands.context_store import SessionStore
 from app.crew.crew import get_crew
 
@@ -40,7 +40,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(title="Jenny", version="0.5.0", lifespan=lifespan)
 session_store = SessionStore()
 crew = get_crew()
-conversation = ConversationInterface(crew, session_store)
 
 
 class QueryPayload(BaseModel):
@@ -71,17 +70,59 @@ async def health() -> dict[str, bool]:
 
 @app.post("/ask")
 async def ask(payload: QueryPayload) -> dict:
-    """Invoke the conversation interface and return the orchestrated reply."""
+    """Process user query directly through CrewAI orchestrator."""
 
     try:
-        message = IncomingMessage(
-            user_id=payload.user_id,
-            text=payload.text,
-            voice_url=payload.voice_url,
-            image_url=payload.image_url,
-            metadata=payload.metadata or {},
+        user_id = payload.user_id
+
+        # Get session context
+        session = await session_store.get_context(user_id)
+
+        # Handle different input types
+        query_text = None
+
+        if payload.text:
+            query_text = payload.text
+        elif payload.voice_url:
+            # Transcribe voice
+            query_text = await transcribe_audio(payload.voice_url)
+            if not query_text:
+                return {
+                    "agent": "voice_transcription",
+                    "reply": "I could not understand the audio. Could you type it instead?",
+                }
+        elif payload.image_url:
+            return {
+                "agent": "image_analysis",
+                "reply": "Image messages are not yet supported. Please send text.",
+            }
+
+        if not query_text:
+            raise ValueError("No valid input provided")
+
+        # Append user message to history
+        await session_store.append_history(
+            user_id, {"role": "user", "content": query_text}
         )
-        return await conversation.handle_message(message)
+
+        # Process with CrewAI directly
+        response = await crew.process_query(
+            query=query_text,
+            user_id=user_id,
+            context={"user_id": user_id, "session": session, "metadata": payload.metadata or {}}
+        )
+
+        # Update session with agent used
+        await session_store.update_intent(user_id, response.get("agent", ""))
+
+        # Append assistant response to history
+        await session_store.append_history(
+            user_id,
+            {"role": "assistant", "content": response.get("reply"), "agent": response.get("agent")}
+        )
+
+        return response
+
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
