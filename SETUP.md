@@ -4,6 +4,8 @@
 
 This guide will help you set up Jenny with all services running locally on your machine using Docker.
 
+**🤖 Powered by CrewAI**: Jenny uses CrewAI's multi-agent orchestration framework with intelligent LLM-based routing. No keyword matching - the AI understands natural language!
+
 ## Prerequisites
 
 - **Python 3.11 or higher**
@@ -26,8 +28,11 @@ pip install -r requirements.txt
 
 This installs:
 - FastAPI, Uvicorn (web framework)
+- **CrewAI** (multi-agent orchestration framework)
+- **LangChain** (tool integration for CrewAI)
 - PostgreSQL, Redis, Neo4j drivers
 - OpenAI client
+- **Mem0** (AI memory layer, open source)
 - **strands-agents-tools** (50+ agent tools)
 - Telegram bot framework
 - And more...
@@ -172,29 +177,46 @@ Expected response:
 {"ok":true}
 ```
 
-#### 5.2 Test Memory Storage
+#### 5.2 Test CrewAI Intelligent Routing
+
+Test that CrewAI properly routes queries to the right agents:
+
+**Test Memory (no "remember" keyword needed):**
+```bash
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"test","text":"I love Italian food"}'
+```
+
+Expected: CrewAI manager routes to Memory Keeper agent, stores in Mem0 ✅
+
+**Test Task Creation (natural language):**
+```bash
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"test","text":"I need to call mom tomorrow at 3pm"}'
+```
+
+Expected: CrewAI manager routes to Task Coordinator agent, creates reminder ✅
+
+**Test Calendar (no "calendar" keyword needed):**
+```bash
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"test","text":"Set up dentist appointment next week"}'
+```
+
+Expected: CrewAI manager routes to Calendar Coordinator agent ✅
+
+#### 5.3 Test Memory Recall
 
 ```bash
 curl -X POST http://localhost:8044/ask \
   -H "Content-Type: application/json" \
-  -d '{"user_id":"test","text":"Remember that I love green tea"}'
+  -d '{"user_id":"test","text":"What do you know about my preferences?"}'
 ```
 
-Expected response includes:
-```json
-{
-  "agent": "memory_agent",
-  "reply": "Got it, I've saved that."
-}
-```
-
-#### 5.3 Test Task Creation
-
-```bash
-curl -X POST http://localhost:8044/ask \
-  -H "Content-Type: application/json" \
-  -d '{"user_id":"test","text":"Remind me to buy groceries tomorrow"}'
-```
+Expected: CrewAI routes to Memory Keeper, retrieves from Mem0 ✅
 
 #### 5.4 Test Tools Agent (NEW!)
 
