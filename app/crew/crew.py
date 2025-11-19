@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, Dict, List
 
 from crewai import Agent, Crew, Process, Task
@@ -25,11 +26,54 @@ logger = logging.getLogger(__name__)
 
 
 def get_llm():
-    """Get the LLM instance for agents."""
-    return ChatOpenAI(
-        model="gpt-4o-mini",  # Fast and cost-effective
-        temperature=0.7,
-    )
+    """
+    Get the LLM instance for CrewAI agents.
+
+    Supports multiple providers via CREWAI_LLM_PROVIDER environment variable:
+    - openai: OpenAI GPT models (default)
+    - deepseek: DeepSeek Chat models
+    - gemini: Google Gemini models
+
+    Returns:
+        LLM instance for use by CrewAI agents
+    """
+    llm_provider = os.getenv("CREWAI_LLM_PROVIDER", "openai").lower()
+
+    if llm_provider == "deepseek":
+        # DeepSeek Chat via OpenAI-compatible API
+        logger.info("Using DeepSeek Chat for CrewAI agents")
+        return ChatOpenAI(
+            model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+            api_key=os.getenv("DEEPSEEK_API_KEY"),
+            base_url="https://api.deepseek.com/v1",
+            temperature=0.7,
+        )
+
+    elif llm_provider == "gemini":
+        # Google Gemini 2.5 Flash
+        logger.info("Using Gemini 2.5 Flash for CrewAI agents")
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            return ChatGoogleGenerativeAI(
+                model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp"),
+                google_api_key=os.getenv("GOOGLE_API_KEY"),
+                temperature=0.7,
+            )
+        except ImportError:
+            logger.warning("langchain-google-genai not installed. Install with: pip install langchain-google-genai")
+            logger.info("Falling back to OpenAI")
+            return ChatOpenAI(
+                model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+                temperature=0.7,
+            )
+
+    else:  # default: openai
+        # OpenAI GPT models (default)
+        logger.info(f"Using OpenAI for CrewAI agents (model: {os.getenv('OPENAI_MODEL', 'gpt-4o-mini')})")
+        return ChatOpenAI(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            temperature=0.7,
+        )
 
 
 @CrewBase
@@ -111,7 +155,12 @@ class JennyCrew:
 
     @agent
     def general_assistant(self) -> Agent:
-        """Agent for general conversation and questions."""
+        """
+        Primary conversational agent - handles greetings and general conversations.
+
+        This is the MAIN agent that users interact with. It can delegate to
+        specialist agents when needed.
+        """
         return Agent(
             config=self.agents_config['general_assistant'],
             tools=[
@@ -120,7 +169,7 @@ class JennyCrew:
             ],
             llm=get_llm(),
             verbose=True,
-            allow_delegation=False,  # Manager handles delegation
+            allow_delegation=True,  # Can delegate to specialist agents
         )
 
     # ============================================
