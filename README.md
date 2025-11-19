@@ -102,26 +102,24 @@ That's it! See [INSTALL.md](INSTALL.md) for detailed automated setup guide.
 - Multi-modal message handling
 - Automatic text extraction from voice messages
 
-#### 7. **Session Management** ✓
-- Redis-backed context persistence
-- Conversation history (max 20 messages)
-- 30-minute session TTL
-- Tracks last intent and metadata
+#### 7. **Calendar Integration** ✓ NEW!
+- Google Calendar OAuth integration
+- Automatic OAuth link generation when calendar not connected
+- Create, list, search calendar events
+- Natural language event creation
+- User just clicks link to connect - no manual setup!
+- Can disconnect anytime via API
 
-#### 8. **Neo4j Interaction Logging** ✓
-- Full interaction tracking in graph database
-- Stores queries, responses, and agent routing
-- Graceful degradation if unavailable
-
-#### 9. **Telegram Bot** ✓
+#### 8. **Telegram Bot** ✓
 - Full bot interface with multi-modal support
 - Handlers for:
   - Text messages
   - Voice/audio messages
   - Photo messages
 - Uses CrewAI orchestrator (same as HTTP API)
+- OAuth links work in Telegram messages
 
-#### 10. **CrewAI Multi-Agent Orchestration** ✓ NEW!
+#### 9. **CrewAI Multi-Agent Orchestration** ✓ NEW!
 - Powered by CrewAI with hierarchical manager
 - Intelligent LLM-based routing (no keywords needed)
 - 5 specialized agents working together
@@ -431,25 +429,25 @@ Jenny/
 │   │   ├── config.py        # Settings management
 │   │   ├── db.py            # Postgres connection
 │   │   └── graph.py         # Neo4j utilities
+│   ├── api/                 # REST API endpoints
+│   │   └── calendar.py      # Calendar OAuth endpoints
 │   ├── crew/                # ✅ CrewAI orchestration (MAIN)
 │   │   ├── __init__.py
 │   │   ├── crew.py          # JennyCrew (@CrewBase pattern)
-│   │   ├── tools.py         # CrewAI tools
+│   │   ├── tools.py         # CrewAI tools (auto OAuth)
 │   │   └── config/
 │   │       ├── agents.yaml  # Agent definitions
 │   │       └── tasks.yaml   # Task templates
+│   ├── integrations/        # External service integrations
+│   │   └── calendar/        # Calendar providers (Google, MS, Apple)
 │   ├── mem0/
 │   │   └── server/
 │   │       └── main.py      # Mem0 microservice
-│   └── strands/
-│       ├── __init__.py
-│       ├── context_store.py # Session management (Redis)
-│       ├── orchestrator.py  # (Legacy - deprecated)
-│       ├── conversation.py  # (Legacy - deprecated)
-│       └── agents/          # (Legacy - kept for reference)
-│           ├── memory_agent.py
-│           ├── task_agent.py
-│           └── ...
+│   └── services/            # ✅ Utility services
+│       ├── memory_utils.py  # Mem0 wrappers
+│       ├── tasks.py         # Task management
+│       ├── voice.py         # Voice transcription
+│       └── calendar_auth.py # Calendar OAuth storage
 ├── tests/
 │   ├── test_phase1.py
 │   └── test_phase2.py
