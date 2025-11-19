@@ -8,14 +8,17 @@ This guide tells developers (human or AI like Claude Code) exactly what Jenny is
 
 ## 📖 What is Jenny?
 
-**Jenny is a self-learning AI business assistant** that:
+**Jenny is a self-learning AI business assistant powered by CrewAI** that:
+- Uses CrewAI multi-agent orchestration with intelligent LLM-based routing
 - Remembers conversations and learns user preferences (Mem0 open source)
 - Syncs with Google Calendar, Outlook, and Apple Calendar
 - Sends scheduled reminders via Telegram
 - Processes voice notes and images
 - Helps with daily business tasks through natural language
 
-**Key Principle**: 100% local data storage. No cloud services. Complete privacy.
+**Key Principles**:
+- 100% local data storage. No cloud services. Complete privacy.
+- Intelligent routing via CrewAI (no keyword matching needed)
 
 ---
 
@@ -292,39 +295,64 @@ class EncryptionService:
 
 ### Adding a New Agent
 
-1. **Create agent file**: `app/strands/agents/your_agent.py`
+Jenny uses **CrewAI** for intelligent multi-agent orchestration. No keyword matching needed!
 
-```python
-async def your_agent(query: str, context: dict) -> dict:
-    """Handle your specific task"""
-    user_id = context.get("user_id")
+1. **Define agent in `app/crew/config/agents.yaml`:**
 
-    # Your logic here
-
-    return {"reply": "Agent response"}
+```yaml
+your_agent:
+  role: >
+    Your Agent Role
+  goal: >
+    What this agent should accomplish
+  backstory: >
+    Detailed description of agent's expertise and capabilities
 ```
 
-2. **Register in orchestrator**: `app/strands/orchestrator.py`
+2. **Add agent method in `app/crew/crew.py`:**
 
 ```python
-from app.strands.agents.your_agent import your_agent
-
-# In Orchestrator.__init__():
-self.register_agent("your_agent", your_agent)
-
-# Add intent keywords:
-INTENT_MAP = {
-    "your_agent": {"keyword1", "keyword2", "keyword3"},
-    # ... existing agents
-}
+@agent
+def your_agent(self) -> Agent:
+    return Agent(
+        config=self.agents_config['your_agent'],
+        tools=[YourTool1(), YourTool2()],  # Optional tools
+        llm=get_llm(),
+        verbose=True,
+        allow_delegation=False,
+    )
 ```
 
-3. **Test it**:
+3. **Create CrewAI tools in `app/crew/tools.py`** (if needed):
+
+```python
+from crewai.tools import BaseTool
+from pydantic import BaseModel, Field
+
+class YourToolInput(BaseModel):
+    param: str = Field(..., description="Parameter description")
+
+class YourTool(BaseTool):
+    name: str = "your_tool"
+    description: str = "Detailed description of what this tool does"
+    args_schema: type[BaseModel] = YourToolInput
+
+    def _run(self, param: str) -> str:
+        """Implement your tool logic here"""
+        result = do_something(param)
+        return f"Result: {result}"
+```
+
+4. **Test it** (CrewAI manager will automatically route):
+
 ```bash
+# Natural language - no keywords needed!
 curl -X POST http://localhost:8044/ask \
   -H "Content-Type: application/json" \
-  -d '{"user_id":"test","text":"trigger keyword1"}'
+  -d '{"user_id":"test","text":"Help me with [task your agent handles]"}'
 ```
+
+CrewAI's hierarchical manager will understand the intent and route to your agent automatically!
 
 ### Adding a New Calendar Provider
 
@@ -397,6 +425,13 @@ Jenny/
 │   │   ├── db.py                  # PostgreSQL connection
 │   │   ├── cache.py               # Redis caching
 │   │   └── graph.py               # Neo4j connection
+│   ├── crew/                      # ✅ CrewAI orchestration (MAIN)
+│   │   ├── __init__.py
+│   │   ├── crew.py                # JennyCrew (@CrewBase pattern)
+│   │   ├── tools.py               # CrewAI tools
+│   │   └── config/
+│   │       ├── agents.yaml        # Agent definitions
+│   │       └── tasks.yaml         # Task templates
 │   ├── integrations/
 │   │   └── calendar/              # ✅ Calendar integrations
 │   │       ├── base.py
@@ -414,16 +449,19 @@ Jenny/
 │   ├── services/
 │   │   └── memory.py              # ✅ Official mem0 integration
 │   └── strands/
-│       ├── agents/                # All agent implementations
-│       │   ├── calendar_agent.py  # ✅ Enhanced calendar agent
-│       │   ├── memory_agent.py    # ✅ Updated memory agent
-│       │   ├── task_agent.py
-│       │   └── ...
-│       └── orchestrator.py        # Agent routing
+│       ├── conversation.py        # Message handling interface
+│       ├── context_store.py       # Session management
+│       ├── orchestrator.py        # (Legacy - deprecated)
+│       └── agents/                # (Legacy - kept for reference)
+│           ├── calendar_agent.py
+│           ├── memory_agent.py
+│           ├── task_agent.py
+│           └── ...
 ├── docker-compose.yml             # ✅ PostgreSQL, Redis, Neo4j
 ├── requirements.txt               # ✅ All dependencies
 ├── .env.example                   # ✅ Configuration template
 ├── ARCHITECTURE.md                # ✅ System design
+├── CREWAI_BEST_PRACTICES.md       # ✅ CrewAI implementation guide
 ├── IMPLEMENTATION_GUIDE.md        # ✅ This file (YOU ARE HERE)
 ├── INSTALL.md                     # Setup instructions
 └── README.md                      # Project overview

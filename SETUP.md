@@ -4,6 +4,42 @@
 
 This guide will help you set up Jenny with all services running locally on your machine using Docker.
 
+**🤖 Powered by CrewAI**: Jenny uses CrewAI's multi-agent orchestration framework with intelligent LLM-based routing. No keyword matching - the AI understands natural language!
+
+## How Jenny Works
+
+**Message Flow:**
+```
+Telegram Bot (or REST API)
+    ↓
+ConversationInterface (app/strands/conversation.py)
+    ↓
+JennyCrewRunner (app/crew/crew.py)
+    ↓
+CrewAI with @CrewBase + Process.hierarchical
+    ↓
+Hierarchical Manager (auto-created by CrewAI)
+    ↓ (analyzes query with LLM)
+    ↓
+Delegates to appropriate agent:
+    • Memory Keeper → Mem0 operations
+    • Task Coordinator → Tasks/reminders
+    • Calendar Coordinator → Calendar events
+    • Profile Manager → User preferences
+    • General Assistant → Conversations
+    ↓
+Agent uses CrewAI tools (app/crew/tools.py)
+    ↓
+Response back to user
+```
+
+**Key Components:**
+- **CrewAI** = Main orchestrator (replaces old strands routing)
+- **Hierarchical Process** = Intelligent LLM-based routing
+- **5 Specialized Agents** = Defined in `app/crew/config/agents.yaml`
+- **Mem0** = Persistent memory (100% local)
+- **PostgreSQL + Redis + Neo4j** = Data storage (all local)
+
 ## Prerequisites
 
 - **Python 3.11 or higher**
@@ -26,11 +62,16 @@ pip install -r requirements.txt
 
 This installs:
 - FastAPI, Uvicorn (web framework)
+- **CrewAI** (multi-agent orchestration framework)
+- **LangChain** (tool integration for CrewAI)
 - PostgreSQL, Redis, Neo4j drivers
 - OpenAI client
-- **strands-agents-tools** (50+ agent tools)
+- **Mem0** (AI memory layer, open source)
+- **strands-agents-tools** (50+ optional utility tools - not used for orchestration)
 - Telegram bot framework
 - And more...
+
+**Note**: strands-agents-tools is just a tool library. **CrewAI** is the main orchestration framework.
 
 ### Step 2: Start Local Databases
 
@@ -172,39 +213,56 @@ Expected response:
 {"ok":true}
 ```
 
-#### 5.2 Test Memory Storage
+#### 5.2 Test CrewAI Intelligent Routing
+
+Test that CrewAI properly routes queries to the right agents:
+
+**Test Memory (no "remember" keyword needed):**
+```bash
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"test","text":"I love Italian food"}'
+```
+
+Expected: CrewAI manager routes to Memory Keeper agent, stores in Mem0 ✅
+
+**Test Task Creation (natural language):**
+```bash
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"test","text":"I need to call mom tomorrow at 3pm"}'
+```
+
+Expected: CrewAI manager routes to Task Coordinator agent, creates reminder ✅
+
+**Test Calendar (no "calendar" keyword needed):**
+```bash
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"test","text":"Set up dentist appointment next week"}'
+```
+
+Expected: CrewAI manager routes to Calendar Coordinator agent ✅
+
+#### 5.3 Test Memory Recall
 
 ```bash
 curl -X POST http://localhost:8044/ask \
   -H "Content-Type: application/json" \
-  -d '{"user_id":"test","text":"Remember that I love green tea"}'
+  -d '{"user_id":"test","text":"What do you know about my preferences?"}'
 ```
 
-Expected response includes:
-```json
-{
-  "agent": "memory_agent",
-  "reply": "Got it, I've saved that."
-}
-```
+Expected: CrewAI routes to Memory Keeper, retrieves from Mem0 ✅
 
-#### 5.3 Test Task Creation
+#### 5.4 Test General Queries
 
 ```bash
 curl -X POST http://localhost:8044/ask \
   -H "Content-Type: application/json" \
-  -d '{"user_id":"test","text":"Remind me to buy groceries tomorrow"}'
+  -d '{"user_id":"test","text":"What can you help me with?"}'
 ```
 
-#### 5.4 Test Tools Agent (NEW!)
-
-```bash
-curl -X POST http://localhost:8044/ask \
-  -H "Content-Type: application/json" \
-  -d '{"user_id":"test","text":"list tools"}'
-```
-
-This shows all available tools from strands-agents-tools library!
+Expected: CrewAI routes to General Assistant, explains capabilities ✅
 
 #### 5.5 Run Test Suite
 
@@ -262,35 +320,51 @@ PONG
 
 ## Usage Examples
 
-### Memory Management
+All these examples go through **CrewAI's hierarchical manager**, which intelligently routes to the appropriate agent.
+
+### Memory Management (via Memory Keeper Agent)
 
 ```bash
-# Save preferences
+# Save preferences (CrewAI routes to Memory Keeper → Mem0)
 curl -X POST http://localhost:8044/ask \
   -H "Content-Type: application/json" \
   -d '{"user_id":"john","text":"My favorite color is blue"}'
 
-# Recall preferences
+# Recall preferences (CrewAI routes to Memory Keeper → searches Mem0)
 curl -X POST http://localhost:8044/ask \
   -H "Content-Type: application/json" \
   -d '{"user_id":"john","text":"What do I like?"}'
 ```
 
-### Task Management
+### Task Management (via Task Coordinator Agent)
 
 ```bash
-# Create task
+# Create task (CrewAI routes to Task Coordinator → creates task)
 curl -X POST http://localhost:8044/ask \
   -H "Content-Type: application/json" \
   -d '{"user_id":"john","text":"Remind me to call mom tomorrow"}'
 
-# List tasks
+# List tasks (CrewAI routes to Task Coordinator → lists tasks)
 curl -X POST http://localhost:8044/ask \
   -H "Content-Type: application/json" \
   -d '{"user_id":"john","text":"List my tasks"}'
 ```
 
-### Using Advanced Tools
+### Calendar Management (via Calendar Coordinator Agent)
+
+```bash
+# Create event (CrewAI routes to Calendar Coordinator → creates event)
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"john","text":"Schedule dentist appointment tomorrow at 2pm"}'
+
+# View calendar (CrewAI routes to Calendar Coordinator → lists events)
+curl -X POST http://localhost:8044/ask \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"john","text":"What is on my calendar this week?"}'
+```
+
+### Using Advanced Tools (via General Assistant or specialized agents)
 
 ```bash
 # List available tools
@@ -298,10 +372,10 @@ curl -X POST http://localhost:8044/ask \
   -H "Content-Type: application/json" \
   -d '{"user_id":"john","text":"what tools do you have?"}'
 
-# Web search (if strands-agents-tools is installed)
+# Natural conversation (CrewAI routes to General Assistant)
 curl -X POST http://localhost:8044/ask \
   -H "Content-Type: application/json" \
-  -d '{"user_id":"john","text":"web search for Python tutorials"}'
+  -d '{"user_id":"john","text":"What can you help me with?"}'
 ```
 
 ## Managing Services
@@ -499,10 +573,12 @@ docker run --rm -v jenny_postgres-data:/data -v $(pwd):/backup alpine tar czf /b
    docker-compose up -d
    ```
 
-### Enable Strands Tools Optional Features
+### Enable Optional Tool Libraries
 
-Install additional tools:
+**Note**: These are optional utility tools, not related to CrewAI orchestration.
+
 ```bash
+# Optional: Additional strands-agents-tools features
 pip install strands-agents-tools[mem0_memory,use_browser,rss,use_computer]
 ```
 

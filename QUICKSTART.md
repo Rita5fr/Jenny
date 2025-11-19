@@ -44,6 +44,15 @@ START HERE
     │   │  - Migration phases                      │
     │   └──────────────────────────────────────────┘
     │
+    ├─→ For Understanding CrewAI:
+    │   ┌──────────────────────────────────────────┐
+    │   │  CREWAI_BEST_PRACTICES.md                │
+    │   │  - CrewAI implementation details         │
+    │   │  - @CrewBase pattern                     │
+    │   │  - Process.hierarchical routing          │
+    │   │  - YAML configuration                    │
+    │   └──────────────────────────────────────────┘
+    │
     ├─→ For Understanding Databases:
     │   ┌──────────────────────────────────────────┐
     │   │  DATABASE_ARCHITECTURE.md                │
@@ -65,14 +74,19 @@ START HERE
 
 ## 🎯 What is Jenny?
 
-**Jenny is a self-learning AI business assistant** that:
+**Jenny is a self-learning AI business assistant powered by CrewAI** that:
+- ✅ **Intelligent multi-agent orchestration** (CrewAI with hierarchical routing)
 - ✅ **Remembers conversations** (Mem0 open source, 100% local)
 - ✅ **Syncs with 3 calendars** (Google, Outlook, Apple)
 - ✅ **Sends scheduled reminders** via Telegram
+- ✅ **Natural language understanding** (no keywords needed!)
 - ⏳ **Processes voice notes & images** (pending)
 - ⏳ **Provides productivity insights** (pending)
 
-**Key Principle**: 🔒 **100% local data storage. Zero cloud dependencies.**
+**Key Principles**:
+- 🔒 **100% local data storage. Zero cloud dependencies.**
+- 🤖 **CrewAI multi-agent framework for intelligent task delegation**
+- 🧠 **LLM-based routing (understands natural language, not keywords)**
 
 ---
 
@@ -106,10 +120,13 @@ curl http://localhost:8044/health
 **→ Go to: [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md)**
 
 **What's already done:**
+- ✅ **CrewAI multi-agent orchestration** (with @CrewBase pattern)
+- ✅ **Process.hierarchical** for automatic intelligent routing
+- ✅ **5 specialized agents** (Memory, Task, Calendar, Profile, General)
 - ✅ Mem0 open source integration
 - ✅ Google/Outlook/Apple calendar sync
 - ✅ Scheduled reminders (APScheduler)
-- ✅ Natural language parsing
+- ✅ Natural language parsing (no keywords needed!)
 - ✅ Local PostgreSQL + Redis + Neo4j
 
 **What's pending:**
@@ -137,8 +154,9 @@ cat IMPLEMENTATION_GUIDE.md
 
 Understand:
 - System design diagrams
-- Technology choices (why Strands? why Mem0?)
+- Technology choices (why CrewAI? why Mem0?)
 - Component interactions
+- CrewAI multi-agent orchestration
 - Migration phases
 
 ---
@@ -172,17 +190,22 @@ Follow `INSTALL.md` to set up the environment.
 ```
 Jenny/
 ├── app/
+│   ├── crew/                   # ✅ NEW: CrewAI Implementation
+│   │   ├── config/             # YAML configurations
+│   │   │   ├── agents.yaml     # Agent roles, goals, backstories
+│   │   │   └── tasks.yaml      # Task templates
+│   │   ├── crew.py             # @CrewBase with Process.hierarchical
+│   │   └── tools.py            # CrewAI tools (memory, tasks, calendar)
 │   ├── api/routes.py           # Main API endpoints
 │   ├── integrations/calendar/  # ✅ DONE: Calendar sync (3 providers)
 │   ├── scheduler/              # ✅ DONE: Reminders system
 │   ├── services/memory.py      # ✅ DONE: Mem0 integration
-│   ├── strands/agents/         # Agent implementations
-│   │   ├── calendar_agent.py   # ✅ DONE: Enhanced calendar agent
-│   │   ├── memory_agent.py     # ✅ DONE: Memory management
-│   │   └── task_agent.py       # Task/reminder agent
+│   ├── strands/                # Legacy agent implementations
+│   │   ├── agents/             # Original agent functions (deprecated)
+│   │   └── conversation.py     # Conversation interface (uses CrewAI)
 │   └── main.py                 # FastAPI app entry point
 ├── docker-compose.yml          # ✅ DONE: PostgreSQL, Redis, Neo4j
-├── requirements.txt            # ✅ DONE: All dependencies
+├── requirements.txt            # ✅ DONE: CrewAI + all dependencies
 ├── .env.example                # ✅ DONE: Configuration template
 └── [Documentation files]
 ```
@@ -221,9 +244,10 @@ curl -X POST http://localhost:8044/ask \
 3. Test with Telegram photos
 
 **New Agent:**
-1. Create: `app/strands/agents/your_agent.py`
-2. Register in: `app/strands/orchestrator.py`
-3. Add intent keywords
+1. Define in: `app/crew/config/agents.yaml`
+2. Add @agent method in: `app/crew/crew.py`
+3. Create tools in: `app/crew/tools.py` (optional)
+4. No keywords needed - CrewAI routes automatically!
 
 **Dashboard:**
 1. Create: `app/api/dashboard.py`

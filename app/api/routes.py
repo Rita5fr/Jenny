@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
-from app.strands.orchestrator import Orchestrator
+from app.strands.orchestrator import Orchestrator  # Legacy - deprecated, use CrewAI
 
 router = APIRouter(prefix="/api", tags=["orchestrator"])
 
@@ -39,7 +39,11 @@ async def healthcheck() -> dict[str, str]:
 
 @router.post("/orchestrate")
 async def orchestrate(request: OrchestrateRequest) -> dict:
-    """Route the prompt through the orchestrator pipeline."""
+    """Route the prompt through the orchestrator pipeline.
+
+    DEPRECATED: This endpoint uses the legacy Orchestrator.
+    For new code, use the /ask endpoint which uses CrewAI.
+    """
 
     orchestrator = Orchestrator()
     try:
