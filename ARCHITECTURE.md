@@ -48,7 +48,6 @@ Jenny has been migrated from a custom keyword-based routing system to **CrewAI**
 │  ├─ Memory Tools (search, add, get context)                │
 │  ├─ Task Tools (create, list, complete, delete)            │
 │  ├─ Calendar Tools (list events, create, search)           │
-│  ├─ Strands Tools (file ops, web search, code exec)        │
 │  ├─ Voice Transcription (Whisper)                          │
 │  └─ Image Analysis (GPT-4 Vision) [Pending]                │
 ├─────────────────────────────────────────────────────────────┤
@@ -87,8 +86,8 @@ crewai>=0.90.0                 # CrewAI framework (intelligent routing)
 crewai-tools>=0.15.0           # CrewAI built-in tools
 langchain>=0.3.0               # LangChain for tool integration
 langchain-openai>=0.2.0        # OpenAI LLM integration
+langchain-google-genai         # Google Gemini integration (optional)
 langchain-community>=0.3.0     # Community tools
-strands-agents-tools>=0.1.0    # 70+ Strands tools (wrapped for CrewAI)
 mem0ai>=0.1.0                  # Mem0 open source (local PostgreSQL + Neo4j)
 
 # Web Framework
@@ -156,16 +155,19 @@ Tasks:
 **Files Created/Modified**:
 - `requirements.txt` (added crewai, langchain)
 - `app/crew/crew.py` (JennyCrew with @CrewBase)
-- `app/crew/tools.py` (10 CrewAI tools)
+- `app/crew/tools.py` (CrewAI tools for memory, tasks, calendar)
 - `app/crew/config/agents.yaml` (5 agent definitions)
 - `app/crew/config/tasks.yaml` (task templates)
 - `app/main.py` (uses get_crew())
-- `app/bots/telegram_bot.py` (uses CrewAI)
-- `app/strands/conversation.py` (uses JennyCrewRunner)
+- `app/bots/telegram_bot.py` (uses CrewAI directly)
+- `app/services/` (utility services for memory, tasks, voice, calendar)
 
-**Legacy Files** (kept for reference):
-- `app/strands/orchestrator.py` (deprecated)
-- `app/strands/agents/*.py` (deprecated)
+**Legacy Files** (removed):
+- `app/strands/` directory - COMPLETELY REMOVED
+  - orchestrator.py (keyword-based routing - replaced by CrewAI)
+  - conversation.py (intermediate layer - replaced by direct CrewAI)
+  - context_store.py (SessionStore - replaced by Mem0)
+  - agents/*.py (legacy agents - replaced by CrewAI agents)
 
 ### Phase 2: Calendar Integrations
 **Status**: Pending
@@ -261,76 +263,89 @@ Tasks:
 5. [ ] Create API documentation
 6. [ ] Create user guide
 
-## Agent Architecture (Strands Pattern)
+## CrewAI Agent Architecture
 
-### Base Agent Structure
+Jenny uses **CrewAI** with the `@CrewBase` decorator pattern for agent orchestration. This provides:
+- Intelligent LLM-based routing (no keyword matching needed)
+- Hierarchical process with automatic manager
+- YAML-based agent configuration
+- Built-in tool delegation and context sharing
+
+### Agent Implementation Pattern
+
+All agents are defined in `app/crew/crew.py` using the `@agent` decorator:
 
 ```python
-from strands_agents import Agent, ToolRegistry
+from crewai import Agent, Crew, Process, Task
+from crewai.project import CrewBase, agent, crew, task
 
-class JennyBaseAgent(Agent):
-    """Base class for all Jenny agents using Strands SDK"""
+@CrewBase
+class JennyCrew:
+    """Jenny's multi-agent crew using CrewAI best practices"""
 
-    def __init__(self, name: str, description: str):
-        super().__init__(name=name, description=description)
-        self.memory = get_mem0_client()
-        self.tools = ToolRegistry()
+    agents_config = 'config/agents.yaml'
+    tasks_config = 'config/tasks.yaml'
 
-    async def execute(self, query: str, context: dict) -> dict:
-        """Main execution method - to be overridden"""
-        raise NotImplementedError
+    @agent
+    def general_assistant(self) -> Agent:
+        """Primary conversational agent - handles greetings and general conversations"""
+        return Agent(
+            config=self.agents_config['general_assistant'],
+            tools=[MemorySearchTool(), MemoryContextTool()],
+            llm=get_llm(),
+            verbose=True,
+            allow_delegation=True,  # Can delegate to specialists
+        )
 
-    async def get_user_memory(self, user_id: str) -> list:
-        """Fetch user context from Mem0"""
-        return await self.memory.search(query="", user_id=user_id)
+    @agent
+    def memory_keeper(self) -> Agent:
+        """Manages user memories and context via Mem0"""
+        return Agent(
+            config=self.agents_config['memory_keeper'],
+            tools=[MemoryAddTool(), MemorySearchTool(), MemoryContextTool()],
+            llm=get_llm(),
+            verbose=True,
+        )
 
-    async def save_memory(self, user_id: str, text: str):
-        """Save to Mem0"""
-        await self.memory.add(messages=[{"role": "user", "content": text}], user_id=user_id)
+    @agent
+    def task_coordinator(self) -> Agent:
+        """Manages tasks, reminders, and todos"""
+        return Agent(
+            config=self.agents_config['task_coordinator'],
+            tools=[TaskCreateTool(), TaskListTool(), TaskCompleteTool(), TaskDeleteTool()],
+            llm=get_llm(),
+            verbose=True,
+        )
+
+    @crew
+    def crew(self) -> Crew:
+        """Create the crew with hierarchical process"""
+        return Crew(
+            agents=self.agents,
+            tasks=self.tasks,
+            process=Process.hierarchical,  # LLM-based routing
+            verbose=True,
+        )
 ```
 
-### Example: Task Agent (Strands Pattern)
+### Agent Configuration (YAML)
 
-```python
-from strands_agents import Agent
-from strands_tools import get_tool
-from mem0 import MemoryClient
+Agents are configured in `app/crew/config/agents.yaml`:
 
-class TaskAgent(Agent):
-    """Manages tasks, reminders, todos using Strands + Mem0"""
+```yaml
+general_assistant:
+  role: Jenny - Friendly AI Assistant and Conversation Manager
+  goal: Be a helpful, friendly, and conversational AI assistant
+  backstory: >
+    You are Jenny, a warm and intelligent AI assistant who loves helping people.
+    Your name is Jenny, and you introduce yourself as such when appropriate.
 
-    def __init__(self):
-        super().__init__(
-            name="task_agent",
-            description="Handles task creation, reminders, and todo management"
-        )
-        self.memory = MemoryClient()
-        self.scheduler = get_scheduler()
-
-    async def execute(self, query: str, context: dict) -> dict:
-        user_id = context.get("user_id")
-
-        # Get user context from Mem0
-        memories = await self.memory.search(query=query, user_id=user_id, limit=5)
-
-        # Determine intent
-        if "remind" in query.lower():
-            return await self.create_reminder(query, user_id, memories)
-        elif "list" in query.lower():
-            return await self.list_tasks(user_id)
-        elif "complete" in query.lower():
-            return await self.complete_task(query, user_id)
-
-        # Use LLM for complex queries
-        response = await self.llm_invoke(query, context=memories)
-
-        # Save interaction to Mem0
-        await self.memory.add(
-            messages=[{"role": "assistant", "content": response}],
-            user_id=user_id
-        )
-
-        return {"reply": response}
+    YOU CAN HELP WITH:
+    - Memory & Context (via Mem0)
+    - Task Management (reminders, todos)
+    - Calendar Management (Google, Outlook, Apple)
+    - General Conversation
+    - User Preferences
 ```
 
 ## Mem0 Integration (Open Source - Local Configuration)
@@ -566,10 +581,10 @@ PREMIUM_FEATURES_ENABLED=true
 ## Success Criteria
 
 ### Phase 1 (Core Migration)
-- [ ] All agents refactored to Strands pattern
-- [ ] Official Mem0 library integrated
-- [ ] All existing tests passing
-- [ ] No regression in functionality
+- [x] All agents migrated to CrewAI pattern
+- [x] Official Mem0 library integrated
+- [x] CrewAI hierarchical routing implemented
+- [x] Legacy strands code removed
 
 ### Final Product
 - [ ] Calendar sync working for all 3 providers

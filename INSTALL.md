@@ -117,9 +117,11 @@ Expected response:
 
 ### Python Packages (via pip)
 - FastAPI, Uvicorn - Web framework
+- CrewAI - Multi-agent orchestration
+- LangChain - Tool integration
 - PostgreSQL, Redis, Neo4j drivers
-- OpenAI client
-- strands-agents-tools (50+ tools)
+- OpenAI, DeepSeek, Gemini clients
+- Mem0 - AI memory layer
 - Telegram bot framework
 - And more... (see requirements.txt)
 

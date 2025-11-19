@@ -69,13 +69,10 @@ This installs:
 - **CrewAI** (multi-agent orchestration framework)
 - **LangChain** (tool integration for CrewAI)
 - PostgreSQL, Redis, Neo4j drivers
-- OpenAI client
+- OpenAI, DeepSeek, Gemini clients
 - **Mem0** (AI memory layer, open source)
-- **strands-agents-tools** (50+ optional utility tools - not used for orchestration)
 - Telegram bot framework
 - And more...
-
-**Note**: strands-agents-tools is just a tool library. **CrewAI** is the main orchestration framework.
 
 ### Step 2: Start Local Databases
 
@@ -640,15 +637,6 @@ docker run --rm -v jenny_postgres-data:/data -v $(pwd):/backup alpine tar czf /b
    docker-compose down -v  # WARNING: Deletes data!
    docker-compose up -d
    ```
-
-### Enable Optional Tool Libraries
-
-**Note**: These are optional utility tools, not related to CrewAI orchestration.
-
-```bash
-# Optional: Additional strands-agents-tools features
-pip install strands-agents-tools[mem0_memory,use_browser,rss,use_computer]
-```
 
 ## Production Deployment
 
